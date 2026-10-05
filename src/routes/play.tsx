@@ -64,7 +64,7 @@ function Play() {
     if (!user) { nav({ to: "/" }); return; }
     if (!c) { nav({ to: "/characters" }); return; }
     let alive = true;
-    (window as unknown as { __R: typeof R }).__R = R;
+    if (import.meta.env.DEV) (window as unknown as { __R: typeof R }).__R = R;
     R.log = (text, color) => useUI.getState().push({ ch: "system", text, color });
     load().then((m) => {
       if (!alive || !m) return;
