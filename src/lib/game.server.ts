@@ -2,7 +2,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   CITIES, ITEMS, MONSTERS, MONSTER_SPAWNS, OUTFITS, MOUNTS, PVP_RULES, QUESTS, STORE,
-  VOCATIONS, cityAt, levelFromExp, maxHp, maxMana, mlReq, moveSpeed, skillReq,
+  VOCATIONS, cityAt, zoneAt, levelFromExp, maxHp, maxMana, mlReq, moveSpeed, skillReq,
   type VocationId,
 } from "@/game/data";
 
@@ -142,6 +142,12 @@ export async function applySync(userId: string, input: SyncInput) {
 export async function applyDeath(userId: string, id: string, killerId?: string | null) {
   const c = await getOwnedChar(userId, id);
   const red = c.skull === "red";
+  const home0 = CITIES.find((x) => x.id === c.home_city) ?? CITIES[0];
+  if (zoneAt(c.pos_x, c.pos_z)?.kind === "pvp") {
+    // Arena deaths carry no penalty
+    const row = await save(c.id, { hp: maxHp(c.vocation, c.level), mana: maxMana(c.vocation, c.level), pos_x: home0.x, pos_z: home0.z + 4, last_save: new Date().toISOString() });
+    return { character: row, events: ["Você caiu na Arena. Sem penalidades."] };
+  }
   const lossPct = red ? PVP_RULES.expLossPct * 2 : PVP_RULES.expLossPct;
   const exp = Math.max(0, Math.floor(c.exp * (1 - lossPct)));
   const level = Math.max(1, levelFromExp(exp));
