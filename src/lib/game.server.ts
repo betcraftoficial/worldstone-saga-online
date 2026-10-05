@@ -1,7 +1,7 @@
 // Server-only game authority. Every value that persists is computed here.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
-  ARENA_MAPS, CITIES, ITEMS, MONSTERS, MONSTER_SPAWNS, OUTFITS, MOUNTS, PVP_RULES, QUESTS, STORE,
+  ARENA_MAPS, CITIES, FREE_OUTFITS, ITEMS, MONSTERS, MONSTER_SPAWNS, OUTFITS, MOUNTS, PVP_RULES, QUESTS, STORE,
   VOCATIONS, cityAt, zoneAt, levelFromExp, maxHp, maxMana, mlReq, moveSpeed, skillReq,
   type VocationId,
 } from "@/game/data";
@@ -37,6 +37,9 @@ export function normalize(c: CharRow): CharRow {
     c.skull_until = null;
   }
   c.exp = Number(c.exp); c.gold = Number(c.gold); c.bank = Number(c.bank);
+  c.tutorial_step = Number(c.tutorial_step ?? 0);
+  c.arena_wins = Number(c.arena_wins ?? 0); c.arena_losses = Number(c.arena_losses ?? 0); c.arena_rating = Number(c.arena_rating ?? 1000);
+  c.owned_outfits = Array.from(new Set([...(c.owned_outfits ?? []), ...FREE_OUTFITS]));
   return c;
 }
 
