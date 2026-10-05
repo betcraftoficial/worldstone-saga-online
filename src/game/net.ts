@@ -3,7 +3,7 @@
 // coordinator (lowest character id present) and snapshotted to everyone else.
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { R, addEffect, applyMonsterHit, applySnapshot, onMonsterDied, receiveDamage, skullMe, type Effect } from "./engine";
+import { R, maxHpMe, addEffect, applyMonsterHit, applySnapshot, onMonsterDied, receiveDamage, skullMe, type Effect } from "./engine";
 import { useUI } from "./store";
 
 let region: RealtimeChannel | null = null;
@@ -17,16 +17,10 @@ export function myState() {
   return {
     id: me.id, n: me.name, v: me.vocation, l: me.level,
     x: Math.round(R.x * 100) / 100, z: Math.round(R.z * 100) / 100, r: Math.round(R.ry * 100) / 100,
-    o: me.outfit, m: me.mount, h: Math.round((R.hp / Math.max(1, maxHpLocal())) * 100), s: skullMe(),
+    o: me.outfit, m: me.mount, h: Math.round((R.hp / Math.max(1, maxHpMe())) * 100), s: skullMe(),
     g: me.guildTag ?? null, mv: R.moving ? 1 : 0,
   };
 }
-function maxHpLocal() {
-  const me = R.me!;
-  // avoid import cycle cost — same formula as data.maxHp
-  return me ? me.hp && (R as unknown as { _maxHp?: number })._maxHp || 1 : 1;
-}
-
 export function joinRegion(id: string) {
   if (!R.me || id === regionId) return;
   if (region) supabase.removeChannel(region);
