@@ -31,6 +31,17 @@ export const ROADS: [number, number, number, number][] = [
   [0, 0, 0, -205], [0, 0, 75, 85], [-165, 150, -225, 225], [170, 165, 225, 235], [0, 0, -70, -60],
   [175, -115, 170, 165], [-180, -145, -165, 150],
 ];
+
+export type Landmark = { id: string; kind: "bridge" | "ruin" | "sewer" | "secret" | "cave"; x: number; z: number; rot: number; scale: number; name: string };
+export const LANDMARKS: Landmark[] = [
+  { id: "ponte-cinza", kind: "bridge", x: 40, z: -28, rot: -0.65, scale: 1.2, name: "Ponte Cinzenta" },
+  { id: "ponte-brisa", kind: "bridge", x: 145, z: -94, rot: -0.55, scale: 1.4, name: "Ponte de Brisapor" },
+  { id: "ruinas-vhal", kind: "ruin", x: -48, z: 96, rot: 0.3, scale: 1.2, name: "Ruínas de Vhal" },
+  { id: "ruinas-sol", kind: "ruin", x: -128, z: -118, rot: -0.4, scale: 1.35, name: "Templo Soterrado" },
+  { id: "bueiro-aldoria", kind: "sewer", x: 18, z: 18, rot: 0, scale: 1, name: "Bueiros de Aldoria" },
+  { id: "caverna-ecos", kind: "cave", x: 75, z: 85, rot: 0.8, scale: 1.5, name: "Caverna dos Ecos" },
+  { id: "passagem-corvo", kind: "secret", x: -105, z: 82, rot: 1.1, scale: 1, name: "Passagem do Corvo" },
+];
 export function roadDist(x: number, z: number) {
   let best = Infinity;
   for (const [ax, az, bx, bz] of ROADS) {
