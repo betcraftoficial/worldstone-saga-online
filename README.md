@@ -1,29 +1,22 @@
-# Welcome to your Lovable project
+# Eldrath Online
 
-This project was built with [Lovable](https://lovable.dev).
+MMORPG 3D no navegador (PC e celular) com mundo compartilhado em tempo real.
 
-## Build with Lovable
+## Rodar localmente
+1. `bun install`
+2. `bun run dev` → http://localhost:8080
+O backend (banco, contas, tempo real) é o Lovable Cloud, já conectado ao projeto.
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+## Estrutura
+- `src/game/data.ts` — vocações, magias, itens, monstros, cidades, loja, missões, regras de PvP
+- `src/lib/game.server.ts` / `game.functions.ts` — servidor autoritativo (progressão, loot, banco, mercado, loja)
+- `src/game/net.ts` — sincronização em tempo real por região
+- `src/game/engine.ts` — combate, IA de monstros, estado do jogador
+- `src/game/three/*` — renderização 3D · `src/game/ui/*` — HUD e painéis
+- `src/routes/api/public/mercadopago-webhook.ts` — confirmação de pagamentos
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+## Loja (Mercado Pago)
+Defina o segredo `MERCADOPAGO_ACCESS_TOKEN` (Access Token de produção ou teste do Mercado Pago).
 
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
-```
-
-## Built with
-
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
+## Controles
+WASD/setas ou clique no chão para andar · clique em monstros para atacar · 1-4 magias · 5/6 poções · Tab/Espaço alvo mais próximo · I C K Q O P G T L painéis · M mapa · Enter chat · roda do mouse zoom. No celular: joystick + botões.
