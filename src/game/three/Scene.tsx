@@ -140,7 +140,7 @@ function SunFollow() {
     light.current.target.updateMatrixWorld();
   });
   return (
-    <directionalLight ref={light} intensity={1.7} color="#ffe3b8" castShadow
+    <directionalLight ref={light} intensity={1.25} color="#d8c3a6" castShadow
       shadow-mapSize-width={2048} shadow-mapSize-height={2048}
       shadow-camera-left={-40} shadow-camera-right={40} shadow-camera-top={40} shadow-camera-bottom={-40} shadow-bias={-0.0005} />
   );
@@ -308,13 +308,13 @@ function Labels({ root }: { root: React.RefObject<HTMLDivElement | null> }) {
 export function GameScene({ labelRoot, lowGfx }: { labelRoot: React.RefObject<HTMLDivElement | null>; lowGfx: boolean }) {
   return (
     <Canvas shadows dpr={lowGfx ? [1, 1.25] : [1, 1.75]} camera={{ position: [0, 16, 12], fov: 45, near: 0.5, far: 400 }} gl={{ antialias: !lowGfx, powerPreference: "high-performance" }}>
-      <color attach="background" args={["#9fc7e0"]} />
-      <fog attach="fog" args={["#b9d3e0", 60, 150]} />
-      <hemisphereLight args={["#cfe8ff", "#5a4630", 0.55]} />
+      <color attach="background" args={["#252d31"]} />
+      <fog attach="fog" args={["#30383a", 52, 138]} />
+      <hemisphereLight args={["#8393a0", "#2c211b", 0.48]} />
       <SunFollow />
       <Environment resolution={32} environmentIntensity={0.35}>
         <Lightformer intensity={1} position={[0, 5, 0]} scale={[10, 10, 1]} />
-        <Lightformer intensity={0.6} color="#ffd9a8" position={[-5, 1, -1]} rotation-y={Math.PI / 2} scale={[20, 1, 1]} />
+        <Lightformer intensity={0.55} color="#c89164" position={[-5, 1, -1]} rotation-y={Math.PI / 2} scale={[20, 1, 1]} />
       </Environment>
       <World />
       <Player />
@@ -327,8 +327,8 @@ export function GameScene({ labelRoot, lowGfx }: { labelRoot: React.RefObject<HT
       <Labels root={labelRoot} />
       {!lowGfx && (
         <EffectComposer multisampling={0}>
-          <Bloom intensity={0.8} luminanceThreshold={1.05} luminanceSmoothing={0.2} mipmapBlur />
-          <Vignette offset={0.25} darkness={0.55} />
+          <Bloom intensity={0.65} luminanceThreshold={1.05} luminanceSmoothing={0.2} mipmapBlur />
+          <Vignette offset={0.18} darkness={0.72} />
         </EffectComposer>
       )}
     </Canvas>

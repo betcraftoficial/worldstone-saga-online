@@ -53,11 +53,11 @@ export function roadDist(x: number, z: number) {
 }
 
 export const BIOME_COLORS: Record<Biome, [number, number, number]> = {
-  plains: [0.36, 0.6, 0.27],
-  coast: [0.42, 0.62, 0.32],
-  desert: [0.86, 0.68, 0.42],
-  forest: [0.17, 0.33, 0.2],
-  snow: [0.9, 0.93, 0.97],
+  plains: [0.22, 0.32, 0.18],
+  coast: [0.24, 0.35, 0.25],
+  desert: [0.5, 0.39, 0.25],
+  forest: [0.1, 0.2, 0.13],
+  snow: [0.63, 0.68, 0.7],
 };
 
 export function groundColor(x: number, z: number): [number, number, number] {
