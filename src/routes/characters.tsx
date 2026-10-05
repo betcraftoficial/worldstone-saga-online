@@ -37,12 +37,20 @@ function Characters() {
 
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
+    const cleanName = name.normalize("NFC").replace(/[\u200B-\u200D\uFEFF]/g, "").trim().replace(/\s+/g, " ");
+    if (!/^\p{L}+(?:[ '-]\p{L}+)*$/u.test(cleanName)) {
+      toast.error("Use apenas letras, espaços, apóstrofo ou hífen no nome.");
+      return;
+    }
     setBusy(true);
     try {
-      const r = await create({ data: { name, vocation: voc } });
+      const r = await create({ data: { name: cleanName, vocation: voc } });
       await qc.invalidateQueries({ queryKey: ["chars"] });
       nav({ to: "/play", search: { c: r.id } });
-    } catch (err) { toast.error((err as Error).message); } finally { setBusy(false); }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Não foi possível criar o personagem.";
+      toast.error(message.startsWith("[") ? "Confira o nome e tente novamente." : message);
+    } finally { setBusy(false); }
   }
 
   const v = VOCATIONS[voc];
@@ -96,8 +104,8 @@ function Characters() {
                 <li>Passiva: <b className="text-primary">{v.passive.name}</b> — {v.passive.desc}</li>
                 <li>Magias: {v.spells.map((s) => s.name).join(", ")}</li>
               </ul>
-              <input className="slot w-full px-3 py-2.5 outline-none focus:ring-2 focus:ring-ring" placeholder="Nome do personagem" value={name} onChange={(e) => setName(e.target.value)} minLength={3} maxLength={18} required />
-              <button disabled={busy} className="btn-gold w-full py-3">Criar e entrar no mundo</button>
+              <input className="slot w-full px-3 py-2.5 outline-none focus:ring-2 focus:ring-ring" placeholder="Nome do personagem" value={name} onChange={(e) => setName(e.target.value)} minLength={3} maxLength={18} autoComplete="off" required />
+              <button disabled={busy} className="btn-gold w-full py-3">{busy ? "Criando herói..." : "Criar e entrar no mundo"}</button>
             </div>
           </form>
         </section>
