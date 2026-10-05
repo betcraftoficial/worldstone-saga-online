@@ -61,7 +61,7 @@ function Characters() {
           <section className="panel mb-8 p-5">
             <h2 className="panel-title mb-4 text-xl">Seus heróis</h2>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {q.data!.map((c) => (
+              {q.data!.map((c: { id: string; name: string; vocation: string; level: number }) => (
                 <Link key={c.id} to="/play" search={{ c: c.id }} className="slot flex items-center justify-between p-4 transition hover:ring-2 hover:ring-ring">
                   <div>
                     <div className="font-display text-lg text-parchment">{c.name}</div>

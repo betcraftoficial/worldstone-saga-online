@@ -32,7 +32,7 @@ export const createCharacter = auth
     const name = data.name.replace(/\s+/g, " ").split(" ").map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase()).join(" ");
     const { data: row, error } = await db().from("characters").insert({
       user_id: context.userId, name, vocation: v, hp: maxHp(v, 1), mana: maxMana(v, 1),
-      pos_x: 0, pos_z: 4,
+      pos_x: Math.round((Math.random() * 12 - 6) * 10) / 10, pos_z: Math.round((4 + Math.random() * 6) * 10) / 10,
       equipment: { weapon: VOCATIONS[v].starterWeapon, armor: "peitoral_couro" },
       inventory: [{ id: "pocao_vida", qty: 5 }, { id: "pocao_mana", qty: 5 }],
     }).select("id").single();

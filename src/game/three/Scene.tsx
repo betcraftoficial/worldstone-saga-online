@@ -140,7 +140,7 @@ function SunFollow() {
     light.current.target.updateMatrixWorld();
   });
   return (
-    <directionalLight ref={light} intensity={2.4} color="#ffe3b8" castShadow
+    <directionalLight ref={light} intensity={1.7} color="#ffe3b8" castShadow
       shadow-mapSize-width={2048} shadow-mapSize-height={2048}
       shadow-camera-left={-40} shadow-camera-right={40} shadow-camera-top={40} shadow-camera-bottom={-40} shadow-bias={-0.0005} />
   );
@@ -273,10 +273,6 @@ function Labels({ root }: { root: React.RefObject<HTMLDivElement | null> }) {
       p.fill.style.background = barColor;
     };
     const hpColor = (h: number) => (h > 60 ? "#3fd04a" : h > 30 ? "#e6c229" : "#e0412c");
-    if (R.me && !R.dead) {
-      const h = (R.hp / Math.max(1, (R.me ? 1 : 1) * (R as unknown as { _mhp?: number })._mhp || R.hp)) * 100;
-      void h;
-    }
     for (const m of R.monsters) {
       if (!m.alive || Math.hypot(m.x - R.x, m.z - R.z) > 26) continue;
       const pct = (m.hp / m.def.hp) * 100;
@@ -314,12 +310,11 @@ export function GameScene({ labelRoot, lowGfx }: { labelRoot: React.RefObject<HT
     <Canvas shadows dpr={lowGfx ? [1, 1.25] : [1, 1.75]} camera={{ position: [0, 16, 12], fov: 45, near: 0.5, far: 400 }} gl={{ antialias: !lowGfx, powerPreference: "high-performance" }}>
       <color attach="background" args={["#9fc7e0"]} />
       <fog attach="fog" args={["#b9d3e0", 60, 150]} />
-      <hemisphereLight args={["#cfe8ff", "#5a4630", 0.9]} />
-      <ambientLight intensity={0.25} />
+      <hemisphereLight args={["#cfe8ff", "#5a4630", 0.55]} />
       <SunFollow />
-      <Environment resolution={64}>
-        <Lightformer intensity={2} position={[0, 5, 0]} scale={[10, 10, 1]} />
-        <Lightformer intensity={1} color="#ffd9a8" position={[-5, 1, -1]} rotation-y={Math.PI / 2} scale={[20, 1, 1]} />
+      <Environment resolution={32} environmentIntensity={0.35}>
+        <Lightformer intensity={1} position={[0, 5, 0]} scale={[10, 10, 1]} />
+        <Lightformer intensity={0.6} color="#ffd9a8" position={[-5, 1, -1]} rotation-y={Math.PI / 2} scale={[20, 1, 1]} />
       </Environment>
       <World />
       <Player />
@@ -332,7 +327,7 @@ export function GameScene({ labelRoot, lowGfx }: { labelRoot: React.RefObject<HT
       <Labels root={labelRoot} />
       {!lowGfx && (
         <EffectComposer multisampling={0}>
-          <Bloom intensity={0.9} luminanceThreshold={0.85} mipmapBlur />
+          <Bloom intensity={0.8} luminanceThreshold={1.05} luminanceSmoothing={0.2} mipmapBlur />
           <Vignette offset={0.25} darkness={0.55} />
         </EffectComposer>
       )}
