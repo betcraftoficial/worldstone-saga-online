@@ -3,6 +3,16 @@
 // from these tables, so the client can never invent values.
 
 export type VocationId = "knight" | "paladin" | "druid" | "sorcerer" | "rogue";
+export type ItemRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
+export type ItemStat = "vitality" | "defense" | "precision" | "rangedDamage" | "healing" | "mana" | "magicPower" | "agility" | "critical";
+
+export const RARITIES: Record<ItemRarity, { name: string; color: string }> = {
+  common: { name: "Comum", color: "#b8b5ad" },
+  uncommon: { name: "Incomum", color: "#65b86e" },
+  rare: { name: "Raro", color: "#5b9ee6" },
+  epic: { name: "Épico", color: "#bd70e8" },
+  legendary: { name: "Lendário", color: "#e7aa45" },
+};
 
 export type SpellDef = {
   id: string;
@@ -174,34 +184,36 @@ export type ItemDef = {
   use?: { hp?: number; mana?: number };
   icon: string;
   minLevel?: number;
+  rarity?: ItemRarity;
+  stats?: Partial<Record<ItemStat, number>>;
 };
 
 export const ITEMS: Record<string, ItemDef> = {
   // weapons
-  espada_curta: { id: "espada_curta", name: "Espada Curta", slot: "weapon", atk: 12, vocations: ["knight"], price: 60, sell: 15, color: "#cfd6dd", icon: "🗡️" },
+  espada_curta: { id: "espada_curta", name: "Espada Curta", slot: "weapon", atk: 12, vocations: ["knight"], price: 60, sell: 15, color: "#cfd6dd", icon: "🗡️", rarity: "common", stats: { vitality: 2 } },
   espada_longa: { id: "espada_longa", name: "Espada de Aldoria", slot: "weapon", atk: 22, vocations: ["knight"], price: 900, sell: 220, color: "#e2e8f0", icon: "⚔️", minLevel: 15 },
-  machado_runico: { id: "machado_runico", name: "Machado Rúnico", slot: "weapon", atk: 36, vocations: ["knight"], price: 0, sell: 2500, color: "#f59e0b", icon: "🪓", minLevel: 30 },
+  machado_runico: { id: "machado_runico", name: "Machado Rúnico", slot: "weapon", atk: 36, vocations: ["knight"], price: 0, sell: 2500, color: "#f59e0b", icon: "🪓", minLevel: 30, rarity: "legendary", stats: { vitality: 20, defense: 8 } },
   arco_simples: { id: "arco_simples", name: "Arco Simples", slot: "weapon", atk: 11, vocations: ["paladin"], price: 70, sell: 15, color: "#a16207", icon: "🏹" },
   arco_elfico: { id: "arco_elfico", name: "Arco Élfico", slot: "weapon", atk: 21, vocations: ["paladin"], price: 950, sell: 230, color: "#65a30d", icon: "🏹", minLevel: 15 },
-  besta_solar: { id: "besta_solar", name: "Besta Solar", slot: "weapon", atk: 34, vocations: ["paladin"], price: 0, sell: 2600, color: "#fbbf24", icon: "🎯", minLevel: 30 },
+  besta_solar: { id: "besta_solar", name: "Besta Solar", slot: "weapon", atk: 34, vocations: ["paladin"], price: 0, sell: 2600, color: "#fbbf24", icon: "🎯", minLevel: 30, rarity: "legendary", stats: { precision: 18, rangedDamage: 12 } },
   cajado_raiz: { id: "cajado_raiz", name: "Cajado de Raiz", slot: "weapon", atk: 9, vocations: ["druid"], price: 60, sell: 15, color: "#6b8e23", icon: "🪄" },
-  cajado_gelido: { id: "cajado_gelido", name: "Cajado Gélido", slot: "weapon", atk: 18, vocations: ["druid"], price: 900, sell: 220, color: "#7dd3fc", icon: "🪄", minLevel: 15 },
+  cajado_gelido: { id: "cajado_gelido", name: "Cajado Gélido", slot: "weapon", atk: 18, vocations: ["druid"], price: 900, sell: 220, color: "#7dd3fc", icon: "🪄", minLevel: 15, rarity: "rare", stats: { healing: 12, mana: 25 } },
   varinha_brasa: { id: "varinha_brasa", name: "Varinha de Brasa", slot: "weapon", atk: 9, vocations: ["sorcerer"], price: 60, sell: 15, color: "#f97316", icon: "🪄" },
-  varinha_inferno: { id: "varinha_inferno", name: "Varinha do Inferno", slot: "weapon", atk: 18, vocations: ["sorcerer"], price: 900, sell: 220, color: "#ef4444", icon: "🔥", minLevel: 15 },
+  varinha_inferno: { id: "varinha_inferno", name: "Varinha do Inferno", slot: "weapon", atk: 18, vocations: ["sorcerer"], price: 900, sell: 220, color: "#ef4444", icon: "🔥", minLevel: 15, rarity: "epic", stats: { magicPower: 15, mana: 30 } },
   adaga_gasta: { id: "adaga_gasta", name: "Adaga Gasta", slot: "weapon", atk: 10, vocations: ["rogue"], price: 60, sell: 15, color: "#94a3b8", icon: "🔪" },
-  adagas_gemeas: { id: "adagas_gemeas", name: "Adagas Gêmeas", slot: "weapon", atk: 20, vocations: ["rogue"], price: 950, sell: 230, color: "#cbd5e1", icon: "🔪", minLevel: 15 },
+  adagas_gemeas: { id: "adagas_gemeas", name: "Adagas Gêmeas", slot: "weapon", atk: 20, vocations: ["rogue"], price: 950, sell: 230, color: "#cbd5e1", icon: "🔪", minLevel: 15, rarity: "rare", stats: { agility: 12, critical: 8 } },
   // armor
   escudo_madeira: { id: "escudo_madeira", name: "Escudo de Madeira", slot: "shield", def: 6, vocations: ["knight", "paladin"], price: 50, sell: 10, color: "#92400e", icon: "🛡️" },
-  escudo_aco: { id: "escudo_aco", name: "Escudo de Aço", slot: "shield", def: 14, vocations: ["knight", "paladin"], price: 700, sell: 170, color: "#9ca3af", icon: "🛡️", minLevel: 12 },
+  escudo_aco: { id: "escudo_aco", name: "Escudo de Aço", slot: "shield", def: 14, vocations: ["knight", "paladin"], price: 700, sell: 170, color: "#9ca3af", icon: "🛡️", minLevel: 12, rarity: "uncommon", stats: { defense: 8, vitality: 5 } },
   capuz_couro: { id: "capuz_couro", name: "Capuz de Couro", slot: "helmet", def: 2, price: 30, sell: 6, color: "#a16207", icon: "🪖" },
   elmo_ferro: { id: "elmo_ferro", name: "Elmo de Ferro", slot: "helmet", def: 5, price: 400, sell: 90, color: "#9ca3af", icon: "⛑️", minLevel: 10 },
   peitoral_couro: { id: "peitoral_couro", name: "Peitoral de Couro", slot: "armor", def: 4, price: 50, sell: 10, color: "#a16207", icon: "🥋" },
   cota_malha: { id: "cota_malha", name: "Cota de Malha", slot: "armor", def: 9, price: 600, sell: 140, color: "#9ca3af", icon: "🦺", minLevel: 10 },
-  manto_arcano: { id: "manto_arcano", name: "Manto Arcano", slot: "armor", def: 7, vocations: ["druid", "sorcerer"], price: 700, sell: 160, color: "#2563eb", icon: "🧥", minLevel: 12 },
+  manto_arcano: { id: "manto_arcano", name: "Manto Arcano", slot: "armor", def: 7, vocations: ["druid", "sorcerer"], price: 700, sell: 160, color: "#2563eb", icon: "🧥", minLevel: 12, rarity: "rare", stats: { mana: 35, magicPower: 8, healing: 8 } },
   calca_couro: { id: "calca_couro", name: "Calça de Couro", slot: "legs", def: 2, price: 35, sell: 7, color: "#a16207", icon: "👖" },
   calca_aco: { id: "calca_aco", name: "Grevas de Aço", slot: "legs", def: 6, price: 500, sell: 110, color: "#9ca3af", icon: "👖", minLevel: 12 },
   botas_couro: { id: "botas_couro", name: "Botas de Couro", slot: "boots", def: 1, price: 25, sell: 5, color: "#78350f", icon: "🥾" },
-  botas_vento: { id: "botas_vento", name: "Botas do Vento", slot: "boots", def: 3, price: 0, sell: 1500, color: "#67e8f9", icon: "👢", minLevel: 20 },
+  botas_vento: { id: "botas_vento", name: "Botas do Vento", slot: "boots", def: 3, vocations: ["paladin", "rogue"], price: 0, sell: 1500, color: "#67e8f9", icon: "👢", minLevel: 20, rarity: "epic", stats: { agility: 16, precision: 8 } },
   // consumables
   pocao_vida: { id: "pocao_vida", name: "Poção de Vida", use: { hp: 120 }, price: 45, sell: 0, color: "#ef4444", icon: "🧪" },
   pocao_mana: { id: "pocao_mana", name: "Poção de Mana", use: { mana: 100 }, price: 50, sell: 0, color: "#3b82f6", icon: "🧪" },
@@ -216,10 +228,12 @@ export const ITEMS: Record<string, ItemDef> = {
   faixa_mumia: { id: "faixa_mumia", name: "Faixa de Múmia", price: 0, sell: 70, color: "#d6c7a1", icon: "🎗️" },
   cristal_gelo: { id: "cristal_gelo", name: "Cristal de Gelo", price: 0, sell: 120, color: "#a5f3fc", icon: "💎" },
   escama_dragao: { id: "escama_dragao", name: "Escama de Dragão", price: 0, sell: 300, color: "#dc2626", icon: "🐉" },
-  coroa_goblin: { id: "coroa_goblin", name: "Coroa do Rei Goblin", price: 0, sell: 1200, color: "#facc15", icon: "👑" },
-  grimorio_lich: { id: "grimorio_lich", name: "Grimório do Lich", price: 0, sell: 3500, color: "#4c1d95", icon: "📕" },
-  coracao_dragao: { id: "coracao_dragao", name: "Coração de Dragão", price: 0, sell: 8000, color: "#b91c1c", icon: "❤️‍🔥" },
+  coroa_goblin: { id: "coroa_goblin", name: "Coroa do Rei Goblin", slot: "helmet", def: 9, price: 0, sell: 1200, color: "#facc15", icon: "👑", minLevel: 12, rarity: "epic", stats: { vitality: 10, precision: 10 } },
+  grimorio_lich: { id: "grimorio_lich", name: "Grimório do Lich", slot: "shield", def: 8, vocations: ["druid", "sorcerer"], price: 0, sell: 3500, color: "#4c1d95", icon: "📕", minLevel: 35, rarity: "legendary", stats: { magicPower: 24, mana: 60, healing: 15 } },
+  coracao_dragao: { id: "coracao_dragao", name: "Coração de Dragão", slot: "armor", def: 20, price: 0, sell: 8000, color: "#b91c1c", icon: "❤️‍🔥", minLevel: 50, rarity: "legendary", stats: { vitality: 30, magicPower: 18, critical: 10 } },
 };
+
+for (const item of Object.values(ITEMS)) item.rarity ??= item.minLevel && item.minLevel >= 20 ? "rare" : item.minLevel ? "uncommon" : "common";
 
 // ---------- Monsters ----------
 export type MonsterShape = "quad" | "biped" | "blob" | "insect" | "dragon";
@@ -378,6 +392,11 @@ export type OutfitDef = {
 };
 export const OUTFITS: Record<string, OutfitDef> = {
   aventureiro: { id: "aventureiro", name: "Aventureiro", body: "#7c5a3a", trim: "#d6b98c", head: "#5b4636" },
+  knight_livre: { id: "knight_livre", name: "Armadura do Knight", body: "#4f555a", trim: "#b7a37a", head: "#33383d" },
+  paladin_livre: { id: "paladin_livre", name: "Manto do Paladin", body: "#6d5d32", trim: "#d8c477", head: "#413b27", cape: "#776b3c" },
+  druid_livre: { id: "druid_livre", name: "Vestes do Druid", body: "#294c35", trim: "#86a96f", head: "#1f3828", cape: "#355f40" },
+  sorcerer_livre: { id: "sorcerer_livre", name: "Vestes do Sorcerer", body: "#552c32", trim: "#b46e58", head: "#382126", cape: "#6c3034" },
+  rogue_livre: { id: "rogue_livre", name: "Couro do Rogue", body: "#2e3035", trim: "#737b80", head: "#17191d", cape: "#24262b" },
   cacador: { id: "cacador", name: "Caçador", body: "#3f6212", trim: "#a3e635", head: "#365314", cape: "#4d7c0f", goldPrice: 800 },
   marinheiro: { id: "marinheiro", name: "Marinheiro", body: "#1e3a8a", trim: "#f8fafc", head: "#1e40af", goldPrice: 1200 },
   nomade: { id: "nomade", name: "Nômade", body: "#c2410c", trim: "#fde68a", head: "#9a3412", cape: "#ea580c", goldPrice: 1500 },
@@ -425,15 +444,34 @@ export const STORE: StoreItem[] = [
 ];
 
 export const QUESTS = [
-  { id: "ratos", name: "Praga de Ratos", giver: "aldoria_quest", desc: "Elimine 10 Ratos do Esgoto.", monster: "rato", count: 10, reward: { exp: 150, gold: 100 } },
+  { id: "ratos", name: "I — Ecos da Tempestade", giver: "aldoria_quest", desc: "Elimine 5 Ratos do Esgoto sob Aldoria e recupere os primeiros fragmentos da Tempestade Partida.", monster: "rato", count: 5, reward: { exp: 180, gold: 120, item: "capuz_couro" }, story: "A tempestade corrompeu os túneis da cidade. Capitã Elara precisa saber de onde a energia está vindo.", minLevel: 1 },
   { id: "lobos", name: "Uivos na Noite", giver: "aldoria_quest", desc: "Cace 10 Lobos Cinzentos.", monster: "lobo", count: 10, reward: { exp: 400, gold: 250, item: "botas_couro" } },
-  { id: "goblins", name: "Acampamento Goblin", giver: "aldoria_quest", desc: "Derrote 15 Goblins.", monster: "goblin", count: 15, reward: { exp: 1200, gold: 600 } },
+  { id: "goblins", name: "III — O Fragmento Roubado", giver: "aldoria_quest", desc: "Derrote 15 Goblins no acampamento e abra caminho até o rei.", monster: "goblin", count: 15, reward: { exp: 1200, gold: 600 }, story: "Os goblins carregaram um fragmento da tempestade para suas ruínas ao sudoeste.", minLevel: 5 },
   { id: "rei", name: "A Coroa Roubada", giver: "aldoria_quest", desc: "Derrote Grakk, o Rei Goblin.", monster: "rei_goblin", count: 1, reward: { exp: 3000, gold: 2000 } },
   { id: "orcs", name: "Fúria Orc", giver: "bris_quest", desc: "Derrote 20 Orcs.", monster: "orc", count: 20, reward: { exp: 5000, gold: 1500 } },
   { id: "escorpioes", name: "Ferrões do Deserto", giver: "duna_quest", desc: "Derrote 20 Escorpiões.", monster: "escorpiao", count: 20, reward: { exp: 4000, gold: 1200 } },
   { id: "mumias", name: "Tumba Inquieta", giver: "duna_quest", desc: "Derrote 15 Múmias.", monster: "mumia", count: 15, reward: { exp: 7000, gold: 2500 } },
   { id: "aranhas", name: "Teias do Vale", giver: "vale_quest", desc: "Derrote 15 Aranhas Sombrias.", monster: "aranha", count: 15, reward: { exp: 5000, gold: 1500 } },
   { id: "lich", name: "O Fim de Morthal", giver: "vale_quest", desc: "Derrote Morthal, o Lich.", monster: "lich", count: 1, reward: { exp: 15000, gold: 8000 } },
+];
+
+export const TUTORIAL_STEPS = [
+  { title: "Desperte em Aldoria", why: "A Tempestade Partida voltou a pulsar sob a cidade.", task: "Use WASD, setas ou toque no chão para se mover.", action: "move" },
+  { title: "Primeiro perigo", why: "Criaturas corrompidas invadiram os arredores.", task: "Selecione um Rato do Esgoto e ataque.", action: "combat" },
+  { title: "Espólios da queda", why: "Tudo que você recupera ajuda Aldoria a resistir.", task: "Derrote uma criatura e receba o loot.", action: "loot" },
+  { title: "Prepare-se", why: "Equipamento define sua sobrevivência nas terras selvagens.", task: "Abra o Inventário e equipe um item.", action: "equip" },
+  { title: "Poder da vocação", why: "Sua classe desperta poderes próprios conforme evolui.", task: "Use uma magia pela hotkey 1–0.", action: "spell" },
+  { title: "Capitã Elara", why: "Ela lidera a investigação da Tempestade Partida.", task: "Fale com a NPC de missão marcada em azul.", action: "npc" },
+  { title: "Ecos da Tempestade", why: "A origem da corrupção está nos bueiros de Aldoria.", task: "Aceite a primeira missão de Elara.", action: "quest" },
+  { title: "O mundo se abre", why: "Cada nível revela magias, áreas e inimigos mais perigosos.", task: "Conclua a missão e avance sua jornada.", action: "level" },
+] as const;
+
+export const ARENA_MODES = ["1v1", "2v2", "3v3", "5v5"] as const;
+export type ArenaMode = typeof ARENA_MODES[number];
+export const ARENA_MAPS = [
+  { id: "cripta", name: "Cripta da Tempestade", a: [-12, -205] as const, b: [12, -205] as const },
+  { id: "ponte", name: "Ponte dos Condenados", a: [-18, -212] as const, b: [18, -198] as const },
+  { id: "ruinas", name: "Ruínas de Vhal", a: [-15, -192] as const, b: [15, -218] as const },
 ];
 
 export function weaponAtk(equipment: Record<string, string | undefined>) {
@@ -447,4 +485,14 @@ export function totalDef(equipment: Record<string, string | undefined>) {
     d += it?.def ?? 0;
   }
   return d;
+}
+
+export function equipmentStats(equipment: Record<string, string | undefined>) {
+  const out: Partial<Record<ItemStat, number>> = {};
+  for (const id of Object.values(equipment)) {
+    const stats = id ? ITEMS[id]?.stats : undefined;
+    if (!stats) continue;
+    for (const [key, value] of Object.entries(stats)) out[key as ItemStat] = (out[key as ItemStat] ?? 0) + (value ?? 0);
+  }
+  return out;
 }
