@@ -65,6 +65,9 @@ export const VOCATIONS: Record<VocationId, VocationDef> = {
       { id: "rodopio", name: "Rodopio de Aço", key: "2", mana: 55, cooldown: 6, kind: "area", range: 0, radius: 4.5, power: 1.3, color: "#ffd27a", minLevel: 8, desc: "Gira a lâmina atingindo todos ao redor." },
       { id: "grito", name: "Grito de Guerra", key: "3", mana: 40, cooldown: 25, kind: "self", range: 0, power: 0, color: "#ffb347", minLevel: 5, buff: { stat: "def", amount: 0.35, duration: 12 }, desc: "+35% defesa por 12s." },
       { id: "cura_rapida", name: "Bandagem", key: "4", mana: 30, cooldown: 4, kind: "heal", range: 0, power: 0.8, color: "#9be36b", minLevel: 3, desc: "Cura leve instantânea." },
+      { id: "investida", name: "Investida", key: "5", mana: 65, cooldown: 9, kind: "target", range: 5, power: 2.2, color: "#e9b56d", minLevel: 15, slow: 0.35, desc: "Avanço brutal que quebra o ritmo do alvo." },
+      { id: "muralha", name: "Muralha Viva", key: "6", mana: 90, cooldown: 35, kind: "self", range: 0, power: 0, color: "#d4c4a2", minLevel: 28, buff: { stat: "absorb", amount: 0.65, duration: 10 }, desc: "Absorve 65% do dano por 10s." },
+      { id: "terremoto", name: "Terremoto", key: "7", mana: 140, cooldown: 14, kind: "area", range: 0, radius: 6, power: 2.5, color: "#d18548", minLevel: 45, desc: "Abala o solo ao redor com dano massivo." },
     ],
   },
   paladin: {
@@ -79,6 +82,9 @@ export const VOCATIONS: Record<VocationId, VocationDef> = {
       { id: "chuva_flechas", name: "Chuva de Flechas", key: "2", mana: 70, cooldown: 7, kind: "area", range: 10, radius: 4, power: 1.2, color: "#ffe066", minLevel: 8, desc: "Área no alvo." },
       { id: "luz_divina", name: "Luz Divina", key: "3", mana: 45, cooldown: 5, kind: "heal", range: 0, power: 1.4, color: "#fffbe0", minLevel: 3, desc: "Cura média." },
       { id: "pontaria", name: "Pontaria", key: "4", mana: 50, cooldown: 30, kind: "self", range: 0, power: 0, color: "#ffcf40", minLevel: 6, buff: { stat: "dmg", amount: 0.3, duration: 15 }, desc: "+30% dano por 15s." },
+      { id: "flecha_perfurante", name: "Flecha Perfurante", key: "5", mana: 65, cooldown: 5, kind: "target", range: 12, power: 2.4, color: "#e8d49b", minLevel: 15, desc: "Disparo preciso de longo alcance." },
+      { id: "egide_solar", name: "Égide Solar", key: "6", mana: 90, cooldown: 30, kind: "self", range: 0, power: 0, color: "#ffdc76", minLevel: 28, buff: { stat: "def", amount: 0.45, duration: 14 }, desc: "Proteção solar por 14s." },
+      { id: "julgamento", name: "Julgamento", key: "7", mana: 150, cooldown: 13, kind: "area", range: 11, radius: 5.5, power: 2.6, color: "#fff1a8", minLevel: 45, desc: "Chuva sagrada sobre uma grande área." },
     ],
   },
   druid: {
@@ -93,6 +99,9 @@ export const VOCATIONS: Record<VocationId, VocationDef> = {
       { id: "tempestade_gelo", name: "Tempestade de Gelo", key: "2", mana: 80, cooldown: 7, kind: "area", range: 8, radius: 4.5, power: 1.4, color: "#9be8ff", minLevel: 8, slow: 0.5, desc: "Área que congela e desacelera." },
       { id: "cura_natural", name: "Cura Natural", key: "3", mana: 50, cooldown: 3, kind: "heal", range: 0, power: 2.2, color: "#b6ff8a", minLevel: 1, desc: "Grande cura." },
       { id: "raizes", name: "Raízes", key: "4", mana: 40, cooldown: 12, kind: "target", range: 8, power: 0.5, color: "#a07a3c", minLevel: 5, slow: 0.85, desc: "Prende o alvo." },
+      { id: "semente_vital", name: "Semente Vital", key: "5", mana: 70, cooldown: 7, kind: "heal", range: 0, power: 3, color: "#8fe68d", minLevel: 15, desc: "Cura profunda alimentada pela floresta." },
+      { id: "casca_ancia", name: "Casca Anciã", key: "6", mana: 100, cooldown: 32, kind: "self", range: 0, power: 0, color: "#769c58", minLevel: 28, buff: { stat: "def", amount: 0.5, duration: 15 }, desc: "A pele assume a resistência de uma árvore antiga." },
+      { id: "ira_floresta", name: "Ira da Floresta", key: "7", mana: 170, cooldown: 14, kind: "area", range: 9, radius: 6, power: 2.7, color: "#5fcf67", minLevel: 45, desc: "A natureza explode em uma grande área." },
     ],
   },
   sorcerer: {
@@ -107,6 +116,9 @@ export const VOCATIONS: Record<VocationId, VocationDef> = {
       { id: "inferno", name: "Inferno", key: "2", mana: 100, cooldown: 8, kind: "area", range: 9, radius: 5, power: 1.8, color: "#ff3d00", minLevel: 8, desc: "Explosão de fogo em área." },
       { id: "raio_arcano", name: "Raio Arcano", key: "3", mana: 70, cooldown: 10, kind: "target", range: 10, power: 3.2, color: "#7ad7ff", minLevel: 6, desc: "Dano altíssimo em um alvo." },
       { id: "escudo_mana", name: "Escudo de Mana", key: "4", mana: 50, cooldown: 30, kind: "self", range: 0, power: 0, color: "#5fb6ff", minLevel: 4, buff: { stat: "absorb", amount: 0.5, duration: 20 }, desc: "Mana absorve 50% do dano por 20s." },
+      { id: "meteoro", name: "Meteoro", key: "5", mana: 90, cooldown: 8, kind: "target", range: 11, power: 3.5, color: "#ff7848", minLevel: 15, desc: "Invoca uma rocha flamejante sobre o alvo." },
+      { id: "surto_arcano", name: "Surto Arcano", key: "6", mana: 120, cooldown: 28, kind: "self", range: 0, power: 0, color: "#9e83ff", minLevel: 28, buff: { stat: "dmg", amount: 0.55, duration: 12 }, desc: "+55% dano por 12s." },
+      { id: "tempestade_caos", name: "Tempestade do Caos", key: "7", mana: 210, cooldown: 16, kind: "area", range: 10, radius: 6.5, power: 3.1, color: "#b14cdb", minLevel: 45, desc: "Devasta uma grande área com energia instável." },
     ],
   },
   rogue: {
@@ -121,6 +133,9 @@ export const VOCATIONS: Record<VocationId, VocationDef> = {
       { id: "leque", name: "Leque de Lâminas", key: "2", mana: 50, cooldown: 6, kind: "area", range: 0, radius: 4, power: 1.2, color: "#c0c8d0", minLevel: 8, desc: "Lâminas ao redor." },
       { id: "sombra", name: "Passo Sombrio", key: "3", mana: 35, cooldown: 18, kind: "self", range: 0, power: 0, color: "#4b5563", minLevel: 4, buff: { stat: "speed", amount: 0.6, duration: 6 }, desc: "+60% velocidade por 6s." },
       { id: "veneno_laminas", name: "Lâminas Envenenadas", key: "4", mana: 40, cooldown: 25, kind: "self", range: 0, power: 0, color: "#8bdc4b", minLevel: 6, buff: { stat: "crit", amount: 0.25, duration: 15 }, desc: "+25% crítico por 15s." },
+      { id: "execucao", name: "Execução", key: "5", mana: 55, cooldown: 6, kind: "target", range: 2.5, power: 3, color: "#d7d7d7", minLevel: 15, desc: "Golpe concentrado contra um único alvo." },
+      { id: "cortina_sombras", name: "Cortina de Sombras", key: "6", mana: 75, cooldown: 28, kind: "self", range: 0, power: 0, color: "#555b68", minLevel: 28, buff: { stat: "speed", amount: 0.85, duration: 9 }, desc: "Explode em velocidade por 9s." },
+      { id: "mil_cortes", name: "Mil Cortes", key: "7", mana: 135, cooldown: 12, kind: "area", range: 0, radius: 5.5, power: 2.8, color: "#c7d0d6", minLevel: 45, desc: "Uma sequência mortal contra todos ao redor." },
     ],
   },
 };
@@ -410,6 +425,7 @@ export const OUTFITS: Record<string, OutfitDef> = {
   floresta: { id: "floresta", name: "Espírito da Floresta", body: "#14532d", trim: "#86efac", head: "#166534", cape: "#15803d", effect: "nature", premium: true },
   astral: { id: "astral", name: "Viajante Astral", body: "#0c1a3a", trim: "#fde047", head: "#1e3a8a", cape: "#1e40af", effect: "stars", premium: true },
 };
+export const FREE_OUTFITS = ["aventureiro", "knight_livre", "paladin_livre", "druid_livre", "sorcerer_livre", "rogue_livre"];
 
 export type MountDef = { id: string; name: string; kind: "wolf" | "deer" | "griffin" | "drake" | "horse" | "bear"; color: string; color2: string; speed: number; effect?: OutfitDef["effect"]; goldPrice?: number; premium?: boolean };
 export const MOUNTS: Record<string, MountDef> = {
