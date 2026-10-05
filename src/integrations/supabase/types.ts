@@ -14,9 +14,105 @@ export type Database = {
   }
   public: {
     Tables: {
+      arena_matches: {
+        Row: {
+          created_at: string
+          ends_at: string | null
+          id: string
+          map_id: string
+          mode: string
+          rewarded: boolean
+          score_a: number
+          score_b: number
+          starts_at: string
+          status: string
+          team_a: string[]
+          team_b: string[]
+          updated_at: string
+          winner: string | null
+        }
+        Insert: {
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          map_id: string
+          mode: string
+          rewarded?: boolean
+          score_a?: number
+          score_b?: number
+          starts_at: string
+          status?: string
+          team_a?: string[]
+          team_b?: string[]
+          updated_at?: string
+          winner?: string | null
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          map_id?: string
+          mode?: string
+          rewarded?: boolean
+          score_a?: number
+          score_b?: number
+          starts_at?: string
+          status?: string
+          team_a?: string[]
+          team_b?: string[]
+          updated_at?: string
+          winner?: string | null
+        }
+        Relationships: []
+      }
+      arena_queue: {
+        Row: {
+          character_id: string
+          created_at: string
+          id: string
+          mode: string
+          status: string
+          team_code: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          id?: string
+          mode: string
+          status?: string
+          team_code?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          id?: string
+          mode?: string
+          status?: string
+          team_code?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arena_queue_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: true
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       characters: {
         Row: {
+          arena_losses: number
+          arena_rating: number
+          arena_wins: number
           bank: number
+          combat_until: string | null
           created_at: string
           deaths: number
           equipment: Json
@@ -47,12 +143,17 @@ export type Database = {
           skill_progress: number
           skull: string
           skull_until: string | null
+          tutorial_step: number
           user_id: string
           vocation: string
           xp_boost_until: string | null
         }
         Insert: {
+          arena_losses?: number
+          arena_rating?: number
+          arena_wins?: number
           bank?: number
+          combat_until?: string | null
           created_at?: string
           deaths?: number
           equipment?: Json
@@ -83,12 +184,17 @@ export type Database = {
           skill_progress?: number
           skull?: string
           skull_until?: string | null
+          tutorial_step?: number
           user_id: string
           vocation: string
           xp_boost_until?: string | null
         }
         Update: {
+          arena_losses?: number
+          arena_rating?: number
+          arena_wins?: number
           bank?: number
+          combat_until?: string | null
           created_at?: string
           deaths?: number
           equipment?: Json
@@ -119,6 +225,7 @@ export type Database = {
           skill_progress?: number
           skull?: string
           skull_until?: string | null
+          tutorial_step?: number
           user_id?: string
           vocation?: string
           xp_boost_until?: string | null
