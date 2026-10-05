@@ -14,7 +14,244 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      characters: {
+        Row: {
+          bank: number
+          created_at: string
+          deaths: number
+          equipment: Json
+          exp: number
+          frags: number
+          gold: number
+          guild_id: string | null
+          home_city: string
+          hp: number
+          id: string
+          inventory: Json
+          kill_window: Json
+          last_save: string
+          level: number
+          magic_level: number
+          mana: number
+          ml_progress: number
+          monsters_killed: number
+          mount: string | null
+          name: string
+          outfit: string
+          owned_mounts: string[]
+          owned_outfits: string[]
+          pos_x: number
+          pos_z: number
+          quests: Json
+          skill_level: number
+          skill_progress: number
+          skull: string
+          skull_until: string | null
+          user_id: string
+          vocation: string
+          xp_boost_until: string | null
+        }
+        Insert: {
+          bank?: number
+          created_at?: string
+          deaths?: number
+          equipment?: Json
+          exp?: number
+          frags?: number
+          gold?: number
+          guild_id?: string | null
+          home_city?: string
+          hp?: number
+          id?: string
+          inventory?: Json
+          kill_window?: Json
+          last_save?: string
+          level?: number
+          magic_level?: number
+          mana?: number
+          ml_progress?: number
+          monsters_killed?: number
+          mount?: string | null
+          name: string
+          outfit?: string
+          owned_mounts?: string[]
+          owned_outfits?: string[]
+          pos_x?: number
+          pos_z?: number
+          quests?: Json
+          skill_level?: number
+          skill_progress?: number
+          skull?: string
+          skull_until?: string | null
+          user_id: string
+          vocation: string
+          xp_boost_until?: string | null
+        }
+        Update: {
+          bank?: number
+          created_at?: string
+          deaths?: number
+          equipment?: Json
+          exp?: number
+          frags?: number
+          gold?: number
+          guild_id?: string | null
+          home_city?: string
+          hp?: number
+          id?: string
+          inventory?: Json
+          kill_window?: Json
+          last_save?: string
+          level?: number
+          magic_level?: number
+          mana?: number
+          ml_progress?: number
+          monsters_killed?: number
+          mount?: string | null
+          name?: string
+          outfit?: string
+          owned_mounts?: string[]
+          owned_outfits?: string[]
+          pos_x?: number
+          pos_z?: number
+          quests?: Json
+          skill_level?: number
+          skill_progress?: number
+          skull?: string
+          skull_until?: string | null
+          user_id?: string
+          vocation?: string
+          xp_boost_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "characters_guild_id_fkey"
+            columns: ["guild_id"]
+            isOneToOne: false
+            referencedRelation: "guilds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guilds: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_character: string
+          tag: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_character: string
+          tag: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_character?: string
+          tag?: string
+        }
+        Relationships: []
+      }
+      purchases: {
+        Row: {
+          amount: number
+          character_id: string
+          created_at: string
+          id: string
+          item_id: string
+          mp_payment_id: string | null
+          mp_preference_id: string | null
+          paid_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          character_id: string
+          created_at?: string
+          id?: string
+          item_id: string
+          mp_payment_id?: string | null
+          mp_preference_id?: string | null
+          paid_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          character_id?: string
+          created_at?: string
+          id?: string
+          item_id?: string
+          mp_payment_id?: string | null
+          mp_preference_id?: string | null
+          paid_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchases_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trades: {
+        Row: {
+          created_at: string
+          from_character: string
+          id: string
+          item_id: string
+          price: number
+          qty: number
+          status: string
+          to_character: string
+        }
+        Insert: {
+          created_at?: string
+          from_character: string
+          id?: string
+          item_id: string
+          price?: number
+          qty?: number
+          status?: string
+          to_character: string
+        }
+        Update: {
+          created_at?: string
+          from_character?: string
+          id?: string
+          item_id?: string
+          price?: number
+          qty?: number
+          status?: string
+          to_character?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_from_character_fkey"
+            columns: ["from_character"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_to_character_fkey"
+            columns: ["to_character"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
