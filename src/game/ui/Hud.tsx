@@ -5,6 +5,7 @@ import { R, maxHpMe, maxManaMe, nearestEnemy, skullMe, targetPos, useSpell } fro
 import { useUI, type ChatMsg, type Panel } from "../store";
 import { groundColor } from "../world";
 import { useItem } from "@/lib/game.functions";
+import { actionLabel, loadHotbar, type HotbarAction } from "../hotbar";
 
 export function useTick(ms = 120) {
   const [, set] = useState(0);
@@ -31,6 +32,7 @@ export function StatusFrame() {
   const t = performance.now() / 1000;
   const boost = me.xp_boost_until && new Date(me.xp_boost_until).getTime() > Date.now();
   const sk = skullMe();
+  const combat = Math.max(0, Math.ceil(R.combatUntil - t));
   return (
     <div className="panel pointer-events-auto w-[210px] p-2 md:w-[260px]">
       <div className="mb-1 flex items-center justify-between">
@@ -52,6 +54,7 @@ export function StatusFrame() {
           ))}
         </div>
       )}
+      {combat > 0 && <div className="mt-1 flex items-center justify-between rounded-sm border border-destructive/60 bg-destructive/20 px-2 py-1 text-[10px] font-bold text-destructive-foreground"><span>⚔ EM COMBATE</span><span>{combat}s</span></div>}
     </div>
   );
 }
@@ -144,6 +147,14 @@ export function Hotbar({ characterId }: { characterId: string }) {
   const me = useUI((s) => s.me);
   const setMe = useUI((s) => s.setMe);
   const potionCd = useRef(0);
+  const [actions, setActions] = useState<HotbarAction[]>([]);
+  useEffect(() => {
+    if (!me) return;
+    const load = () => setActions(loadHotbar(characterId, me.vocation));
+    load();
+    window.addEventListener("storm:hotbar", load);
+    return () => window.removeEventListener("storm:hotbar", load);
+  }, [characterId, me?.vocation]);
   if (!me) return null;
   const v = VOCATIONS[me.vocation];
   const t = performance.now() / 1000;
@@ -167,33 +178,32 @@ export function Hotbar({ characterId }: { characterId: string }) {
   (Hotbar as unknown as { cast: typeof cast; potion: typeof potion }).cast = cast;
   (Hotbar as unknown as { cast: typeof cast; potion: typeof potion }).potion = potion;
   const count = (id: string) => me.inventory.find((s) => s.id === id)?.qty ?? 0;
+  const activate = (action: HotbarAction) => {
+    if (action.kind === "attack") { R.target = nearestEnemy(); if (!R.target) R.log("Nenhum inimigo por perto."); return; }
+    if (action.kind === "item") { void potion(action.id); return; }
+    const index = v.spells.findIndex((spell) => spell.id === action.id);
+    if (index >= 0) cast(index);
+  };
+  (Hotbar as unknown as { activate: (i: number) => void }).activate = (i) => { const action = actions[i]; if (action) activate(action); };
   return (
-    <div className="panel pointer-events-auto flex gap-1 p-1.5">
-      {v.spells.map((s, i) => {
-        const cd = Math.max(0, (R.cooldowns[s.id] ?? 0) - t);
-        const locked = me.level < s.minLevel;
-        return (
-          <button key={s.id} onClick={() => cast(i)} title={`${s.name} — ${s.desc} (${s.mana} mana)`}
-            className={`slot relative flex h-12 w-12 flex-col items-center justify-center overflow-hidden md:h-14 md:w-14 ${locked ? "opacity-40" : ""}`}>
-            <span className="h-5 w-5 rounded-full md:h-6 md:w-6" style={{ background: `radial-gradient(circle, ${s.color}, transparent 70%)`, boxShadow: `0 0 12px ${s.color}` }} />
-            <span className="mt-0.5 max-w-full truncate px-0.5 text-[8px] leading-none text-parchment md:text-[9px]">{s.name}</span>
-            <span className="absolute left-0.5 top-0 text-[9px] text-primary">{s.key}</span>
-            {cd > 0 && <span className="absolute inset-0 flex items-center justify-center bg-background/70 font-bold text-parchment">{Math.ceil(cd)}</span>}
-            {R.mana < s.mana && cd === 0 && <span className="absolute inset-0 bg-mana/25" />}
-          </button>
-        );
+    <div className="panel pointer-events-auto grid grid-cols-5 gap-1 p-1.5 md:flex">
+      {actions.map((action, i) => {
+        const spell = action.kind === "spell" ? v.spells.find((s) => s.id === action.id) : null;
+        const item = action.kind === "item" ? ITEMS[action.id] : null;
+        const cd = spell ? Math.max(0, (R.cooldowns[spell.id] ?? 0) - t) : 0;
+        const locked = !!spell && me.level < spell.minLevel;
+        return <button key={`${i}-${action.kind}-${"id" in action ? action.id : "attack"}`} onClick={() => activate(action)} title={actionLabel(action, me.vocation)} className={`slot relative flex h-11 w-11 flex-col items-center justify-center overflow-hidden md:h-13 md:w-13 ${locked ? "opacity-40" : ""}`}>
+          <span className="text-lg">{action.kind === "attack" ? "⚔️" : item ? item.icon : "✦"}</span>
+          <span className="max-w-full truncate px-0.5 text-[8px] text-parchment">{actionLabel(action, me.vocation)}</span>
+          <span className="absolute left-0.5 top-0 text-[9px] text-primary">{i === 9 ? 0 : i + 1}</span>
+          {item && <span className="absolute bottom-0 right-0.5 text-[9px] font-bold text-parchment">{count(item.id)}</span>}
+          {cd > 0 && <span className="absolute inset-0 flex items-center justify-center bg-background/80 font-bold text-parchment">{Math.ceil(cd)}</span>}
+        </button>;
       })}
-      {(["pocao_vida", "pocao_mana"] as const).map((id, i) => (
-        <button key={id} onClick={() => potion(id)} className="slot relative flex h-12 w-12 items-center justify-center text-xl md:h-14 md:w-14" title={ITEMS[id].name}>
-          <span style={{ filter: `drop-shadow(0 0 6px ${ITEMS[id].color})` }}>{ITEMS[id].icon}</span>
-          <span className="absolute left-0.5 top-0 text-[9px] text-primary">{5 + i}</span>
-          <span className="absolute bottom-0 right-0.5 text-[10px] font-bold text-parchment">{count(id)}</span>
-        </button>
-      ))}
     </div>
   );
 }
-export const hotbarActions = Hotbar as unknown as { cast?: (i: number) => void; potion?: (id: string) => void };
+export const hotbarActions = Hotbar as unknown as { cast?: (i: number) => void; potion?: (id: string) => void; activate?: (i: number) => void };
 
 const CH_COLORS: Record<ChatMsg["ch"], string> = { global: "text-primary", local: "text-parchment", system: "text-muted-foreground", party: "text-mana" };
 export function Chat({ compact }: { compact: boolean }) {
@@ -254,6 +264,7 @@ const MENU: { p: Exclude<Panel, null | "npc">; icon: string; label: string; key?
   { p: "guild", icon: "🏰", label: "Guild", key: "G" },
   { p: "trade", icon: "⚖️", label: "Mercado", key: "T" },
   { p: "store", icon: "💎", label: "Loja", key: "L" },
+  { p: "arena", icon: "⚔️", label: "Arena", key: "V" },
 ];
 export function MenuBar() {
   const setPanel = useUI((s) => s.setPanel);

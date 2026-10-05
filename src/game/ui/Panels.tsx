@@ -1,13 +1,13 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
-  ITEMS, MOUNTS, OUTFITS, QUESTS, STORE, VOCATIONS, expForLevel, mlReq, skillReq, type Slot,
+  ARENA_MODES, ITEMS, MOUNTS, OUTFITS, QUESTS, RARITIES, STORE, VOCATIONS, expForLevel, mlReq, skillReq, type ArenaMode, type Slot,
 } from "../data";
 import { R, maxHpMe, maxManaMe } from "../engine";
 import { useUI } from "../store";
 import { commit } from "./commit";
 import {
-  bankOp, checkPurchases, createCheckout, equipItem, guildAction, npcTrade, questAction, setLook, tradeAction, useItem,
+  arenaAction, bankOp, checkPurchases, createCheckout, equipItem, guildAction, npcTrade, questAction, setLook, tradeAction, useItem,
 } from "@/lib/game.functions";
 
 function Sheet({ title, children }: { title: string; children: ReactNode }) {
@@ -31,8 +31,9 @@ async function run<T>(p: Promise<T>, ok?: string) {
 
 function ItemIcon({ id, qty, onClick, active }: { id: string; qty?: number; onClick?: () => void; active?: boolean }) {
   const it = ITEMS[id];
+  const rarity = RARITIES[it?.rarity ?? "common"];
   return (
-    <button onClick={onClick} title={it?.name} className={`slot relative flex aspect-square items-center justify-center text-xl ${active ? "ring-2 ring-ring" : ""}`}>
+    <button onClick={onClick} title={it?.name} className={`slot relative flex aspect-square items-center justify-center border-2 text-xl ${active ? "ring-2 ring-ring" : ""}`} style={{ borderColor: rarity.color }}>
       <span style={{ filter: `drop-shadow(0 0 4px ${it?.color})` }}>{it?.icon ?? "?"}</span>
       {qty && qty > 1 ? <span className="absolute bottom-0 right-0.5 text-[10px] font-bold text-parchment">{qty}</span> : null}
     </button>
@@ -45,12 +46,14 @@ function ItemDetail({ id }: { id: string }) {
   return (
     <div className="text-xs text-muted-foreground">
       <div className="font-display text-sm text-parchment">{it.name}</div>
+      <div style={{ color: RARITIES[it.rarity ?? "common"].color }}>{RARITIES[it.rarity ?? "common"].name}</div>
       {it.atk ? <div>Ataque: {it.atk}</div> : null}
       {it.def ? <div>Defesa: {it.def}</div> : null}
       {it.use?.hp ? <div>Cura {it.use.hp} de vida</div> : null}
       {it.use?.mana ? <div>Restaura {it.use.mana} de mana</div> : null}
       {it.vocations ? <div>Vocações: {it.vocations.map((v) => VOCATIONS[v].name).join(", ")}</div> : null}
       {it.minLevel ? <div>Nível mínimo: {it.minLevel}</div> : null}
+      {it.stats && Object.entries(it.stats).map(([stat, value]) => <div key={stat}>+{value} {({ vitality: "Vitalidade", defense: "Defesa", precision: "Precisão", rangedDamage: "Dano à distância", healing: "Cura", mana: "Mana", magicPower: "Poder mágico", agility: "Agilidade", critical: "Crítico" } as Record<string, string>)[stat]}</div>)}
       {it.sell ? <div>Vende por {it.sell} ouro</div> : null}
     </div>
   );
@@ -142,6 +145,7 @@ function Skills() {
       <h4 className="mt-4 font-display text-primary">Passiva: {v.passive.name}</h4>
       <p className="text-sm text-muted-foreground">{v.passive.desc}</p>
       <h4 className="mt-4 font-display text-primary">Magias</h4>
+      <p className="mt-1 text-[11px] text-muted-foreground">As dez teclas 1–0 combinam ataque, magias e poções. Novas magias entram automaticamente ao desbloquear.</p>
       <div className="mt-1 space-y-1.5">
         {v.spells.map((s) => (
           <div key={s.id} className={`slot flex items-start gap-2 p-2 ${me.level < s.minLevel ? "opacity-50" : ""}`}>
@@ -155,6 +159,26 @@ function Skills() {
       </div>
     </Sheet>
   );
+}
+
+function Arena() {
+  const me = useUI((s) => s.me)!;
+  const [mode, setMode] = useState<ArenaMode>("1v1");
+  const [state, setState] = useState<{ queue?: { status: string; mode: string } | null; match?: { mode: string; map_id: string; status: string; starts_at: string } | null; waiting?: number; needed?: number }>({});
+  const refresh = async () => { const r = await run(arenaAction({ data: { id: me.id, op: "status" } })); if (r) setState(r); };
+  useEffect(() => { void refresh(); const timer = setInterval(refresh, 4000); return () => clearInterval(timer); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return <Sheet title="Arena PvP">
+    <div className="slot mb-3 p-3 text-sm">
+      <div className="font-display text-primary">Registro de combate</div>
+      <div className="mt-2 grid grid-cols-3 gap-2 text-center"><div><b>{me.arena_wins}</b><small className="block text-muted-foreground">Vitórias</small></div><div><b>{me.arena_losses}</b><small className="block text-muted-foreground">Derrotas</small></div><div><b>{me.arena_rating}</b><small className="block text-muted-foreground">Rating</small></div></div>
+    </div>
+    {state.match ? <div className="slot border-primary p-3"><b className="text-primary">Partida {state.match.mode}</b><p className="text-sm">Mapa: {state.match.map_id} · {state.match.status === "countdown" ? "Preparando combate" : "Em andamento"}</p><p className="mt-1 text-xs text-muted-foreground">Derrote a equipe adversária. A morte encerra a rodada sem perda de itens.</p></div> : state.queue?.status === "queued" ? <div className="slot p-3 text-center"><div className="animate-pulse font-display text-primary">Buscando combatentes…</div><p className="text-sm text-muted-foreground">Modo {state.queue.mode}</p><button className="btn-wood mt-3 px-4 py-1" onClick={async () => { await run(arenaAction({ data: { id: me.id, op: "leave" } })); await refresh(); }}>Sair da fila</button></div> : <>
+      <p className="mb-3 text-sm text-muted-foreground">Escolha o tamanho da equipe. A partida começa quando todos os combatentes forem encontrados.</p>
+      <div className="grid grid-cols-2 gap-2">{ARENA_MODES.map((m) => <button key={m} className={mode === m ? "btn-gold py-3" : "btn-wood py-3"} onClick={() => setMode(m)}>{m}</button>)}</div>
+      <button className="btn-gold mt-4 w-full py-2" onClick={async () => { const r = await run(arenaAction({ data: { id: me.id, op: "join", mode } }), "Você entrou na fila da Arena."); if (r) { setState(r); window.dispatchEvent(new Event("storm:reload")); } }}>Entrar na fila {mode}</button>
+    </>}
+    <div className="mt-4 text-xs text-muted-foreground">Vitórias concedem XP, ouro e rating. Derrotas reduzem apenas rating. PK e penalidades comuns ficam desativados dentro da Arena.</div>
+  </Sheet>;
 }
 
 function Quests() {
@@ -440,6 +464,7 @@ export function Panels() {
     case "party": return <Party />;
     case "guild": return <Guild />;
     case "trade": return <Trade />;
+    case "arena": return <Arena />;
     default: return null;
   }
 }

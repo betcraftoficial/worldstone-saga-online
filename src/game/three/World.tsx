@@ -1,7 +1,7 @@
 import { useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { CITIES, WORLD_SIZE, ZONES, type NpcDef } from "../data";
-import { BUILDINGS, PROPS, groundColor, heightAt, type Prop } from "../world";
+import { BUILDINGS, LANDMARKS, PROPS, groundColor, heightAt, type Prop } from "../world";
 import { Avatar } from "./Avatar";
 import { R } from "../engine";
 import { useUI } from "../store";
@@ -43,7 +43,7 @@ function Water() {
   return (
     <mesh rotation-x={-Math.PI / 2} position={[0, -0.6, 0]}>
       <planeGeometry args={[2000, 2000]} />
-      <meshStandardMaterial color="#2c7aa8" roughness={0.15} metalness={0.3} />
+      <meshStandardMaterial color="#152e38" roughness={0.28} metalness={0.2} />
     </mesh>
   );
 }
@@ -168,6 +168,58 @@ function CityDecor() {
   );
 }
 
+function Torch({ x, z, y = 2.7 }: { x: number; z: number; y?: number }) {
+  return (
+    <group position={[x, heightAt(x, z), z]}>
+      <mesh position={[0, y / 2, 0]} castShadow><cylinderGeometry args={[0.08, 0.11, y, 6]} /><meshStandardMaterial color="#30231d" /></mesh>
+      <mesh position={[0, y + 0.15, 0]}><octahedronGeometry args={[0.22, 0]} /><meshStandardMaterial color="#e9873e" emissive="#e9873e" emissiveIntensity={3.5} toneMapped={false} /></mesh>
+      <pointLight position={[0, y, 0]} color="#e7a05d" intensity={5} distance={10} decay={2} />
+    </group>
+  );
+}
+
+function Landmarks() {
+  return (
+    <>
+      {LANDMARKS.map((l) => {
+        const y = heightAt(l.x, l.z);
+        if (l.kind === "bridge") return (
+          <group key={l.id} position={[l.x, y + 0.8, l.z]} rotation-y={l.rot} scale={l.scale}>
+            <mesh receiveShadow castShadow><boxGeometry args={[4.6, 0.45, 13]} /><meshStandardMaterial color="#59483a" roughness={0.95} /></mesh>
+            {[-1, 1].map((side) => <group key={side} position={[side * 2.1, 1, 0]}>
+              <mesh castShadow><boxGeometry args={[0.22, 1.6, 13]} /><meshStandardMaterial color="#2d2825" /></mesh>
+              {[-5, -2.5, 0, 2.5, 5].map((z) => <mesh key={z} position={[0, -0.4, z]} castShadow><boxGeometry args={[0.35, 2.2, 0.35]} /><meshStandardMaterial color="#312925" /></mesh>)}
+            </group>)}
+          </group>
+        );
+        if (l.kind === "ruin") return (
+          <group key={l.id} position={[l.x, y, l.z]} rotation-y={l.rot} scale={l.scale}>
+            {[-5, 0, 5].map((x, i) => <mesh key={x} position={[x, 1.5 + i * 0.35, i === 1 ? -4 : 0]} castShadow receiveShadow><boxGeometry args={[3.2, 3 + i * 0.7, 1]} /><meshStandardMaterial color={i === 1 ? "#5e5b55" : "#484843"} roughness={1} /></mesh>)}
+            {[[-4, 3], [2, 4], [5, -2]].map(([x, z], i) => <mesh key={i} position={[x, 0.35, z]} rotation={[0.2, i, 0.1]}><dodecahedronGeometry args={[1.2, 0]} /><meshStandardMaterial color="#3b3b38" /></mesh>)}
+          </group>
+        );
+        if (l.kind === "sewer") return (
+          <group key={l.id} position={[l.x, y + 0.04, l.z]}>
+            <mesh rotation-x={-Math.PI / 2}><cylinderGeometry args={[1.5, 1.5, 0.15, 20]} /><meshStandardMaterial color="#292d2b" metalness={0.65} roughness={0.5} /></mesh>
+            {Array.from({ length: 8 }).map((_, i) => <mesh key={i} rotation-y={(i / 8) * Math.PI} position={[Math.cos((i / 8) * Math.PI * 2) * 1, 0.12, Math.sin((i / 8) * Math.PI * 2) * 1]}><boxGeometry args={[0.12, 0.08, 2.4]} /><meshStandardMaterial color="#151817" metalness={0.7} /></mesh>)}
+          </group>
+        );
+        return (
+          <group key={l.id} position={[l.x, y, l.z]} rotation-y={l.rot} scale={l.scale}>
+            <mesh position={[0, 2.1, 0]} castShadow><torusGeometry args={[2.1, 0.7, 6, 12, Math.PI]} /><meshStandardMaterial color="#30302f" roughness={1} /></mesh>
+            <mesh position={[0, 0.4, -1.2]} rotation-x={-Math.PI / 2}><circleGeometry args={[2, 16]} /><meshStandardMaterial color="#151716" roughness={1} /></mesh>
+            <pointLight position={[0, 1.4, -0.5]} color={l.kind === "secret" ? "#608b73" : "#7b97a6"} intensity={7} distance={12} />
+          </group>
+        );
+      })}
+      <Torch x={18} z={21} />
+      <Torch x={72} z={82} />
+      <Torch x={-48} z={93} />
+      <Torch x={-128} z={-115} />
+    </>
+  );
+}
+
 const NPC_OUTFIT: Record<NpcDef["role"], string> = { shop: "nomade", bank: "nobre", quest: "marinheiro", outfit: "cacador", temple: "aventureiro" };
 function Npc({ npc }: { npc: NpcDef }) {
   const openNpc = useUI((s) => s.openNpc);
@@ -234,6 +286,7 @@ export function World() {
       <Vegetation />
       <Buildings />
       <CityDecor />
+      <Landmarks />
       <ZoneDecor />
     </>
   );

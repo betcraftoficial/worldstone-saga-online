@@ -1,7 +1,7 @@
 // Mutable real-time game state (outside React) + combat rules.
 import {
   CITIES, ITEMS, MONSTERS, MONSTER_SPAWNS, MOUNTS, PVP_RULES, VOCATIONS, cityAt, maxHp, maxMana,
-  moveSpeed, totalDef, weaponAtk, zoneAt, type MonsterDef, type SpellDef,
+  equipmentStats, moveSpeed, totalDef, weaponAtk, zoneAt, type MonsterDef, type SpellDef,
 } from "./data";
 import type { CharRow } from "@/lib/game.server";
 import { collide } from "./world";
@@ -44,7 +44,7 @@ export const R = {
   })),
   region: "aldoria",
   coordinator: false,
-  pending: { kills: [] as { type: string; idx: number; share: number }[], hits: 0, manaSpent: 0 },
+  pending: { kills: [] as { type: string; idx: number; share: number }[], hits: 0, manaSpent: 0, combatWith: null as string | null },
   effects: [] as Effect[],
   floaters: [] as Floater[],
   keys: new Set<string>(),
@@ -53,6 +53,8 @@ export const R = {
   dead: false,
   localSkull: "none",
   localSkullUntil: 0,
+  combatUntil: 0,
+  tutorialSignals: new Set<string>(),
   party: new Set<string>(),
   send: (() => {}) as Sender,
   sendGlobal: (() => {}) as Sender,
@@ -106,26 +108,30 @@ function dmgMult() {
 }
 export function autoDamage() {
   const me = R.me!;
+  const stats = equipmentStats(me.equipment);
   const atk = weaponAtk(me.equipment);
   const sk = isMage() ? me.magic_level + 6 : me.skill_level;
   const max = atk * (sk + 4) * 0.075 + me.level * 0.25;
-  let d = rand(max * 0.35, max) * dmgMult();
+  const classBonus = me.vocation === "paladin" ? (stats.rangedDamage ?? 0) * 0.01 : me.vocation === "rogue" ? (stats.agility ?? 0) * 0.008 : 0;
+  let d = rand(max * 0.35, max) * dmgMult() * (1 + classBonus);
   const crit = critRoll();
   if (crit) d *= 2;
   return { dmg: Math.max(1, Math.round(d)), crit };
 }
 export function spellDamage(s: SpellDef) {
   const me = R.me!;
+  const stats = equipmentStats(me.equipment);
   const v = VOCATIONS[me.vocation];
   const base = me.level * 0.25 + me.magic_level * 3.2 + (isMage() ? 8 : me.skill_level * 1.1 + weaponAtk(me.equipment) * 0.7);
-  let d = base * s.power * rand(0.85, 1.15) * (1 + (v.passive.spell ?? 0)) * dmgMult();
+  let d = base * s.power * rand(0.85, 1.15) * (1 + (v.passive.spell ?? 0) + (stats.magicPower ?? 0) * 0.01) * dmgMult();
   const crit = critRoll();
   if (crit) d *= 2;
   return { dmg: Math.max(1, Math.round(d)), crit };
 }
 export function healAmount(s: SpellDef) {
   const me = R.me!;
-  return Math.round((me.level * 0.3 + me.magic_level * 4 + 20) * s.power * rand(0.9, 1.1));
+  const stats = equipmentStats(me.equipment);
+  return Math.round((me.level * 0.3 + me.magic_level * 4 + 20) * s.power * rand(0.9, 1.1) * (1 + (stats.healing ?? 0) * 0.01));
 }
 
 // ---------- targeting helpers ----------
@@ -159,6 +165,8 @@ export function hitMonster(idx: number, dmg: number, crit: boolean, color = "#ff
   if (!m?.alive || !R.me) return;
   floater(m.x, m.z, crit ? `${dmg}!` : `${dmg}`, crit ? "#ffd84a" : color);
   m.hitFlash = now();
+  R.combatUntil = now() + 15;
+  R.tutorialSignals.add("combat");
   if (R.coordinator) applyMonsterHit(idx, dmg, R.me.id);
   else { R.send("mhit", { m: idx, d: dmg, f: R.me.id }); m.attackers.add(R.me.id); }
 }
@@ -190,6 +198,7 @@ export function onMonsterDied(idx: number, attackers: string[]) {
   if (R.me && attackers.includes(R.me.id)) {
     R.pending.kills.push({ type: m.type, idx, share: Math.min(8, attackers.length) });
     R.log(`Você derrotou ${m.def.name}.`, "#ffd84a");
+    R.tutorialSignals.add("loot");
   }
 }
 
@@ -202,6 +211,8 @@ export function hitPlayer(r: Remote, dmg: number, crit: boolean) {
     R.log("Você atacou um jogador inocente e recebeu uma skull branca.", "#ffffff");
   }
   floater(r.x, r.z, crit ? `${dmg}!` : `${dmg}`, crit ? "#ffd84a" : "#ff9b9b");
+  R.combatUntil = now() + 30;
+  R.pending.combatWith = r.id;
   R.send("phit", { t: r.id, d: dmg, f: R.me.id });
 }
 
@@ -212,7 +223,9 @@ export function receiveDamage(raw: number, fromPlayer?: string) {
     const atk = R.remotes.get(fromPlayer);
     if (!atk || inSafe(R.x, R.z) || R.me.level < PVP_RULES.protectionLevel || R.party.has(fromPlayer)) return;
     R.lastPvp = { id: fromPlayer, at: now() };
+    R.pending.combatWith = fromPlayer;
   }
+  R.combatUntil = now() + (fromPlayer ? 30 : 15);
   const v = VOCATIONS[R.me.vocation];
   const def = Math.min(0.7, totalDef(R.me.equipment) * 0.012 + (v.passive.def ?? 0) + buff("def"));
   let d = Math.round(raw * (1 - def));
@@ -286,6 +299,8 @@ export function useSpell(s: SpellDef): string | null {
   R.mana -= s.mana;
   R.pending.manaSpent += s.mana;
   R.cooldowns[s.id] = t + s.cooldown;
+  R.combatUntil = Math.max(R.combatUntil, t + 15);
+  R.tutorialSignals.add("spell");
   void voc;
   return null;
 }
@@ -327,6 +342,7 @@ export function tickPlayer(dt: number) {
     const nz = R.z + (mz / len) * sp * dt;
     [R.x, R.z] = collide(nx, nz);
     R.ry = Math.atan2(mx, mz);
+    R.tutorialSignals.add("move");
   } else if (tp) {
     R.ry = Math.atan2(tp.x - R.x, tp.z - R.z);
   }

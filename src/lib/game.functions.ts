@@ -3,11 +3,11 @@ import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
-  CITIES, ITEMS, MOUNTS, OUTFITS, QUESTS, STORE, VOCATIONS, maxHp, maxMana,
+  ARENA_MODES, CITIES, ITEMS, MOUNTS, OUTFITS, QUESTS, STORE, VOCATIONS, maxHp, maxMana,
   type Slot, type VocationId,
 } from "@/game/data";
 import {
-  addItem, applyDeath, applySync, db, getOwnedChar, mpFetch, removeItem, save, verifyPurchaseWithMP,
+  addItem, applyDeath, applySync, arenaStatus, db, getOwnedChar, joinArena, leaveArenaQueue, mpFetch, removeItem, save, verifyPurchaseWithMP,
 } from "./game.server";
 
 const charId = z.object({ id: z.string().uuid() });
@@ -43,6 +43,7 @@ export const createCharacter = auth
       pos_x: Math.round((Math.random() * 12 - 6) * 10) / 10, pos_z: Math.round((4 + Math.random() * 6) * 10) / 10,
       equipment: { weapon: VOCATIONS[v].starterWeapon, armor: "peitoral_couro" },
       inventory: [{ id: "pocao_vida", qty: 5 }, { id: "pocao_mana", qty: 5 }],
+      owned_outfits: ["aventureiro", `${v}_livre`],
     }).select("id").single();
     if (error) throw new Error(error.message.includes("duplicate") ? "Esse nome já existe." : error.message);
     return row;
@@ -64,13 +65,32 @@ export const syncProgress = auth
     id: z.string().uuid(), x: z.number().finite(), z: z.number().finite(),
     hp: z.number().finite(), mana: z.number().finite(),
     kills: z.array(z.object({ type: z.string().max(40), idx: z.number().int().min(0), share: z.number().int().min(1).max(8) })).max(30),
-    hits: z.number().int().min(0).max(500), manaSpent: z.number().min(0).max(100000),
+    hits: z.number().int().min(0).max(500), manaSpent: z.number().min(0).max(100000), combatWith: z.string().uuid().nullable().optional(),
   }).parse(d))
   .handler(async ({ data, context }) => applySync(context.userId, data));
 
 export const reportDeath = auth
   .inputValidator((d) => z.object({ id: z.string().uuid(), killerId: z.string().uuid().nullable().optional() }).parse(d))
   .handler(async ({ data, context }) => applyDeath(context.userId, data.id, data.killerId));
+
+export const tutorialProgress = auth
+  .inputValidator((d) => z.object({ id: z.string().uuid(), step: z.number().int().min(0).max(8) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const c = await getOwnedChar(context.userId, data.id);
+    if (data.step > c.tutorial_step + 1) throw new Error("Complete a etapa atual primeiro.");
+    return save(c.id, { tutorial_step: Math.max(c.tutorial_step, data.step) });
+  });
+
+export const arenaAction = auth
+  .inputValidator((d) => z.object({ id: z.string().uuid(), op: z.enum(["join", "leave", "status"]), mode: z.enum(ARENA_MODES).optional() }).parse(d))
+  .handler(async ({ data, context }) => {
+    if (data.op === "join") {
+      if (!data.mode) throw new Error("Escolha um modo de Arena.");
+      return joinArena(context.userId, data.id, data.mode);
+    }
+    if (data.op === "leave") return leaveArenaQueue(context.userId, data.id);
+    return arenaStatus(context.userId, data.id);
+  });
 
 export const npcTrade = auth
   .inputValidator((d) => z.object({
@@ -289,7 +309,7 @@ export const createCheckout = auth
     const pref = await mpFetch("/checkout/preferences", {
       method: "POST",
       body: JSON.stringify({
-        items: [{ id: it.id, title: `Eldrath Online — ${it.name}`, quantity: 1, currency_id: "BRL", unit_price: it.priceBRL }],
+        items: [{ id: it.id, title: `STORM ONLINE — ${it.name}`, quantity: 1, currency_id: "BRL", unit_price: it.priceBRL }],
         external_reference: p.id,
         notification_url: `${origin}/api/public/mercadopago-webhook`,
         back_urls: { success: `${origin}/play`, failure: `${origin}/play`, pending: `${origin}/play` },
