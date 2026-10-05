@@ -273,10 +273,6 @@ function Labels({ root }: { root: React.RefObject<HTMLDivElement | null> }) {
       p.fill.style.background = barColor;
     };
     const hpColor = (h: number) => (h > 60 ? "#3fd04a" : h > 30 ? "#e6c229" : "#e0412c");
-    if (R.me && !R.dead) {
-      const h = (R.hp / Math.max(1, (R.me ? 1 : 1) * (R as unknown as { _mhp?: number })._mhp || R.hp)) * 100;
-      void h;
-    }
     for (const m of R.monsters) {
       if (!m.alive || Math.hypot(m.x - R.x, m.z - R.z) > 26) continue;
       const pct = (m.hp / m.def.hp) * 100;
