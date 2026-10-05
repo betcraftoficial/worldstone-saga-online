@@ -12,6 +12,10 @@ import {
 
 const charId = z.object({ id: z.string().uuid() });
 const auth = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]);
+const characterNameSchema = z.string()
+  .transform((value) => value.normalize("NFC").replace(/[\u200B-\u200D\uFEFF]/g, "").trim().replace(/\s+/g, " "))
+  .pipe(z.string().min(3, "O nome precisa ter pelo menos 3 letras.").max(18, "O nome pode ter no máximo 18 caracteres.")
+    .regex(/^\p{L}+(?:[ '-]\p{L}+)*$/u, "Use apenas letras, espaços, apóstrofo ou hífen."));
 
 export const listCharacters = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -21,15 +25,19 @@ export const listCharacters = createServerFn({ method: "GET" })
   });
 
 export const createCharacter = auth
-  .inputValidator((d) => z.object({
-    name: z.string().trim().min(3).max(18).regex(/^[A-Za-zÀ-ÿ ]+$/, "Use apenas letras"),
-    vocation: z.enum(["knight", "paladin", "druid", "sorcerer", "rogue"]),
-  }).parse(d))
+  .inputValidator((d) => {
+    const result = z.object({
+      name: characterNameSchema,
+      vocation: z.enum(["knight", "paladin", "druid", "sorcerer", "rogue"]),
+    }).safeParse(d);
+    if (!result.success) throw new Error(result.error.issues[0]?.message ?? "Confira o nome do personagem.");
+    return result.data;
+  })
   .handler(async ({ data, context }) => {
     const { count } = await db().from("characters").select("id", { count: "exact", head: true }).eq("user_id", context.userId);
     if ((count ?? 0) >= 5) throw new Error("Máximo de 5 personagens por conta.");
     const v = data.vocation as VocationId;
-    const name = data.name.replace(/\s+/g, " ").split(" ").map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+    const name = data.name.split(" ").map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(" ");
     const { data: row, error } = await db().from("characters").insert({
       user_id: context.userId, name, vocation: v, hp: maxHp(v, 1), mana: maxMana(v, 1),
       pos_x: Math.round((Math.random() * 12 - 6) * 10) / 10, pos_z: Math.round((4 + Math.random() * 6) * 10) / 10,
