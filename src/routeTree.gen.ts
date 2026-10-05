@@ -10,33 +10,90 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CharactersRouteImport } from './routes/characters'
+import { Route as PlayRouteImport } from './routes/play'
+import { Route as RankingRouteImport } from './routes/ranking'
+import { Route as ApiPublicMercadopagoWebhookRouteImport } from './routes/api/public/mercadopago-webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CharactersRoute = CharactersRouteImport.update({
+  id: '/characters',
+  path: '/characters',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlayRoute = PlayRouteImport.update({
+  id: '/play',
+  path: '/play',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RankingRoute = RankingRouteImport.update({
+  id: '/ranking',
+  path: '/ranking',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicMercadopagoWebhookRoute =
+  ApiPublicMercadopagoWebhookRouteImport.update({
+    id: '/api/public/mercadopago-webhook',
+    path: '/api/public/mercadopago-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/characters': typeof CharactersRoute
+  '/play': typeof PlayRoute
+  '/ranking': typeof RankingRoute
+  '/api/public/mercadopago-webhook': typeof ApiPublicMercadopagoWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/characters': typeof CharactersRoute
+  '/play': typeof PlayRoute
+  '/ranking': typeof RankingRoute
+  '/api/public/mercadopago-webhook': typeof ApiPublicMercadopagoWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/characters': typeof CharactersRoute
+  '/play': typeof PlayRoute
+  '/ranking': typeof RankingRoute
+  '/api/public/mercadopago-webhook': typeof ApiPublicMercadopagoWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/characters'
+    | '/play'
+    | '/ranking'
+    | '/api/public/mercadopago-webhook'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/characters'
+    | '/play'
+    | '/ranking'
+    | '/api/public/mercadopago-webhook'
+  id:
+    | '__root__'
+    | '/'
+    | '/characters'
+    | '/play'
+    | '/ranking'
+    | '/api/public/mercadopago-webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CharactersRoute: typeof CharactersRoute
+  PlayRoute: typeof PlayRoute
+  RankingRoute: typeof RankingRoute
+  ApiPublicMercadopagoWebhookRoute: typeof ApiPublicMercadopagoWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +105,43 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/characters': {
+      id: '/characters'
+      path: '/characters'
+      fullPath: '/characters'
+      preLoaderRoute: typeof CharactersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/play': {
+      id: '/play'
+      path: '/play'
+      fullPath: '/play'
+      preLoaderRoute: typeof PlayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ranking': {
+      id: '/ranking'
+      path: '/ranking'
+      fullPath: '/ranking'
+      preLoaderRoute: typeof RankingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/mercadopago-webhook': {
+      id: '/api/public/mercadopago-webhook'
+      path: '/api/public/mercadopago-webhook'
+      fullPath: '/api/public/mercadopago-webhook'
+      preLoaderRoute: typeof ApiPublicMercadopagoWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CharactersRoute: CharactersRoute,
+  PlayRoute: PlayRoute,
+  RankingRoute: RankingRoute,
+  ApiPublicMercadopagoWebhookRoute: ApiPublicMercadopagoWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
