@@ -222,11 +222,29 @@ export async function joinArena(userId: string, id: string, mode: "1v1" | "2v2" 
     const startsAt = new Date(Date.now() + 10_000).toISOString();
     const { data: match } = await db().from("arena_matches").insert({ mode, map_id: map.id, team_a: teamA, team_b: teamB, starts_at: startsAt }).select("*").single();
     await db().from("arena_queue").update({ status: "matched" }).in("character_id", [...teamA, ...teamB]);
-    for (const cid of teamA) await db().from("characters").update({ pos_x: map.a[0], pos_z: map.a[1], hp: 999999, mana: 999999 }).eq("id", cid);
-    for (const cid of teamB) await db().from("characters").update({ pos_x: map.b[0], pos_z: map.b[1], hp: 999999, mana: 999999 }).eq("id", cid);
+    for (const cid of teamA) await db().from("characters").update({ pos_x: map.a[0], pos_z: map.a[1] }).eq("id", cid);
+    for (const cid of teamB) await db().from("characters").update({ pos_x: map.b[0], pos_z: map.b[1] }).eq("id", cid);
     return { state: "matched", match };
   }
   return { state: "queued", waiting: queued?.length ?? 1, needed };
+}
+
+export async function arenaStatus(userId: string, id: string) {
+  const c = await getOwnedChar(userId, id);
+  const { data: queue } = await db().from("arena_queue").select("*").eq("character_id", c.id).maybeSingle();
+  const { data: matches } = await db().from("arena_matches").select("*").in("status", ["countdown", "active"]).order("created_at", { ascending: false }).limit(20);
+  const match = (matches ?? []).find((m: { team_a: string[]; team_b: string[] }) => m.team_a.includes(c.id) || m.team_b.includes(c.id)) ?? null;
+  if (match && match.status === "countdown" && new Date(match.starts_at).getTime() <= Date.now()) {
+    const { data: active } = await db().from("arena_matches").update({ status: "active" }).eq("id", match.id).eq("status", "countdown").select("*").single();
+    return { queue, match: active ?? match };
+  }
+  return { queue, match };
+}
+
+export async function leaveArenaQueue(userId: string, id: string) {
+  const c = await getOwnedChar(userId, id);
+  await db().from("arena_queue").delete().eq("character_id", c.id).eq("status", "queued");
+  return { ok: true };
 }
 
 export function grantStore(c: CharRow, itemId: string): Partial<CharRow> {

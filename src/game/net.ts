@@ -29,7 +29,7 @@ export function joinRegion(id: string) {
   R.remotes.clear();
   R.coordinator = false;
   const me = R.me;
-  const ch = supabase.channel(`eldrath:region:${id}`, { config: { broadcast: { self: false }, presence: { key: me.id } } });
+  const ch = supabase.channel(`storm:region:${id}`, { config: { broadcast: { self: false }, presence: { key: me.id } } });
   ch.on("broadcast", { event: "st" }, ({ payload: p }) => {
     if (!p?.id || p.id === me.id) return;
     const ex = R.remotes.get(p.id);
@@ -74,7 +74,7 @@ export function joinRegion(id: string) {
 export function joinGlobal() {
   if (global || !R.me) return;
   const me = R.me;
-  const ch = supabase.channel("eldrath:global", { config: { broadcast: { self: false }, presence: { key: me.id } } });
+  const ch = supabase.channel("storm:global", { config: { broadcast: { self: false }, presence: { key: me.id } } });
   ch.on("broadcast", { event: "chat" }, ({ payload: p }) => useUI.getState().push({ ch: "global", from: clean(p.n, 18), text: clean(p.t) }))
     .on("broadcast", { event: "pinv" }, ({ payload: p }) => { if (p.to === me.id) useUI.getState().setPartyInvite({ from: String(p.f), name: clean(p.n, 18) }); })
     .on("broadcast", { event: "pacc" }, ({ payload: p }) => {
