@@ -160,25 +160,53 @@ export async function applyDeath(userId: string, id: string, killerId?: string |
     const { data: matches } = await db().from("arena_matches").select("*").in("status", ["countdown", "active"]).order("created_at", { ascending: false }).limit(20);
     const match = (matches ?? []).find((m: { team_a: string[]; team_b: string[] }) => m.team_a.includes(c.id) || m.team_b.includes(c.id));
     if (match) {
+      const eliminated = Array.from(new Set([...(match.eliminated ?? []), c.id]));
       const loserSide = match.team_a.includes(c.id) ? "a" : "b";
-      const winnerSide = loserSide === "a" ? "b" : "a";
-      const winners: string[] = winnerSide === "a" ? match.team_a : match.team_b;
-      const losers: string[] = loserSide === "a" ? match.team_a : match.team_b;
-      const { data: claimed } = await db().from("arena_matches").update({ status: "finished", winner: winnerSide, ends_at: new Date().toISOString(), rewarded: true }).eq("id", match.id).neq("status", "finished").select("id");
-      if (claimed?.length) {
-        const reward = match.mode === "5v5" ? 700 : match.mode === "3v3" ? 500 : match.mode === "2v2" ? 350 : 250;
-        for (const cid of winners) {
-          const { data: w } = await db().from("characters").select("exp,gold,arena_wins,arena_rating").eq("id", cid).single();
-          await db().from("characters").update({ exp: Number(w.exp) + reward, gold: Number(w.gold) + reward, arena_wins: w.arena_wins + 1, arena_rating: w.arena_rating + 18 }).eq("id", cid);
-        }
-        for (const cid of losers) {
-          const { data: l } = await db().from("characters").select("arena_losses,arena_rating").eq("id", cid).single();
-          await db().from("characters").update({ arena_losses: l.arena_losses + 1, arena_rating: Math.max(0, l.arena_rating - 12) }).eq("id", cid);
-        }
+      const losingTeam: string[] = loserSide === "a" ? match.team_a : match.team_b;
+      const teamEliminated = losingTeam.every((cid) => eliminated.includes(cid));
+      if (!teamEliminated) {
+        await db().from("arena_matches").update({ eliminated }).eq("id", match.id).eq("status", "active");
+        const row = await save(c.id, { hp: maxHp(c.vocation, c.level), mana: maxMana(c.vocation, c.level), pos_x: 0, pos_z: -205, combat_until: new Date(Date.now() + 30_000).toISOString(), last_save: new Date().toISOString() });
+        return { character: row, arenaEliminated: true, events: ["Você foi eliminado. Aguarde sua equipe concluir a rodada."] };
       }
+
+      const winnerSide = loserSide === "a" ? "b" : "a";
+      const scoreA = Number(match.round_score_a ?? 0) + (winnerSide === "a" ? 1 : 0);
+      const scoreB = Number(match.round_score_b ?? 0) + (winnerSide === "b" ? 1 : 0);
+      const gameOver = scoreA >= 2 || scoreB >= 2;
+      const map = ARENA_MAPS.find((entry) => entry.id === match.map_id) ?? ARENA_MAPS[0];
+      if (gameOver) {
+        const winners: string[] = winnerSide === "a" ? match.team_a : match.team_b;
+        const losers: string[] = winnerSide === "a" ? match.team_b : match.team_a;
+        const { data: claimed } = await db().from("arena_matches").update({ status: "finished", winner: winnerSide, round_score_a: scoreA, round_score_b: scoreB, eliminated, ends_at: new Date().toISOString(), rewarded: true }).eq("id", match.id).eq("status", "active").select("id");
+        if (claimed?.length) {
+          const reward = match.mode === "5v5" ? 700 : match.mode === "3v3" ? 500 : match.mode === "2v2" ? 350 : 250;
+          for (const cid of winners) {
+            const { data: w } = await db().from("characters").select("exp,gold,arena_wins,arena_rating,vocation,level").eq("id", cid).single();
+            const exp = Number(w.exp) + reward;
+            await db().from("characters").update({ exp, level: levelFromExp(exp), gold: Number(w.gold) + reward, arena_wins: w.arena_wins + 1, arena_rating: w.arena_rating + 18, combat_until: null }).eq("id", cid);
+          }
+          for (const cid of losers) {
+            const { data: l } = await db().from("characters").select("arena_losses,arena_rating").eq("id", cid).single();
+            await db().from("characters").update({ arena_losses: l.arena_losses + 1, arena_rating: Math.max(0, l.arena_rating - 12), combat_until: null }).eq("id", cid);
+          }
+        }
+        const row = await save(c.id, { hp: maxHp(c.vocation, c.level), mana: maxMana(c.vocation, c.level), pos_x: home0.x, pos_z: home0.z + 4, combat_until: null, last_save: new Date().toISOString() });
+        return { character: row, arenaFinished: true, events: [`Partida encerrada: ${scoreA} × ${scoreB}. A equipe ${winnerSide.toUpperCase()} venceu.`] };
+      }
+
+      const startsAt = new Date(Date.now() + 8_000).toISOString();
+      const { data: advanced } = await db().from("arena_matches").update({ status: "countdown", round_no: Number(match.round_no ?? 1) + 1, round_score_a: scoreA, round_score_b: scoreB, eliminated: [], starts_at: startsAt, round_ends_at: new Date().toISOString() }).eq("id", match.id).eq("status", "active").select("id");
+      if (advanced?.length) {
+        for (const cid of match.team_a as string[]) await db().from("characters").update({ pos_x: map.a[0], pos_z: map.a[1], combat_until: startsAt }).eq("id", cid);
+        for (const cid of match.team_b as string[]) await db().from("characters").update({ pos_x: map.b[0], pos_z: map.b[1], combat_until: startsAt }).eq("id", cid);
+      }
+      const spawn = loserSide === "a" ? map.a : map.b;
+      const row = await save(c.id, { hp: maxHp(c.vocation, c.level), mana: maxMana(c.vocation, c.level), pos_x: spawn[0], pos_z: spawn[1], combat_until: startsAt, last_save: new Date().toISOString() });
+      return { character: row, arenaRound: true, events: [`Rodada encerrada: ${scoreA} × ${scoreB}. Próxima rodada em 8 segundos.`] };
     }
     const row = await save(c.id, { hp: maxHp(c.vocation, c.level), mana: maxMana(c.vocation, c.level), pos_x: home0.x, pos_z: home0.z + 4, combat_until: null, last_save: new Date().toISOString() });
-    return { character: row, events: [match ? "A rodada da Arena terminou. Resultado e recompensas foram registrados." : "Você caiu na Arena. Sem penalidades."] };
+    return { character: row, events: ["Você caiu na zona PvP. Sem penalidades."] };
   }
   const lossPct = red ? PVP_RULES.expLossPct * 2 : PVP_RULES.expLossPct;
   const exp = Math.max(0, Math.floor(c.exp * (1 - lossPct)));
@@ -223,7 +251,7 @@ export async function joinArena(userId: string, id: string, mode: "1v1" | "2v2" 
     const teamB = picked.slice(size).map((q: { character_id: string }) => q.character_id);
     const map = ARENA_MAPS[Math.floor(Math.random() * ARENA_MAPS.length)];
     const startsAt = new Date(Date.now() + 10_000).toISOString();
-    const { data: match } = await db().from("arena_matches").insert({ mode, map_id: map.id, team_a: teamA, team_b: teamB, starts_at: startsAt }).select("*").single();
+    const { data: match } = await db().from("arena_matches").insert({ mode, map_id: map.id, team_a: teamA, team_b: teamB, starts_at: startsAt, round_no: 1, round_score_a: 0, round_score_b: 0, eliminated: [] }).select("*").single();
     await db().from("arena_queue").update({ status: "matched" }).in("character_id", [...teamA, ...teamB]);
     for (const cid of teamA) await db().from("characters").update({ pos_x: map.a[0], pos_z: map.a[1] }).eq("id", cid);
     for (const cid of teamB) await db().from("characters").update({ pos_x: map.b[0], pos_z: map.b[1] }).eq("id", cid);
@@ -246,8 +274,42 @@ export async function arenaStatus(userId: string, id: string) {
 
 export async function leaveArenaQueue(userId: string, id: string) {
   const c = await getOwnedChar(userId, id);
+  const state = await arenaStatus(userId, id);
+  if (state.match) throw new Error("A partida já começou. Você só poderá sair quando uma equipe vencer duas rodadas.");
   await db().from("arena_queue").delete().eq("character_id", c.id).eq("status", "queued");
   return { ok: true };
+}
+
+export async function dropItem(userId: string, id: string, itemId: string, qty: number) {
+  const c = await getOwnedChar(userId, id);
+  const inv = [...c.inventory];
+  if (!ITEMS[itemId] || !removeItem(inv, itemId, qty)) throw new Error("Você não possui essa quantidade.");
+  const { data: drop, error } = await db().from("ground_drops").insert({ item_id: itemId, qty, pos_x: c.pos_x, pos_z: c.pos_z, owner_character: c.id }).select("*").single();
+  if (error) throw new Error(error.message);
+  const character = await save(c.id, { inventory: inv });
+  return { character, drop };
+}
+
+export async function nearbyDrops(userId: string, id: string) {
+  const c = await getOwnedChar(userId, id);
+  const { data } = await db().from("ground_drops").select("*").gte("expires_at", new Date().toISOString()).gte("pos_x", c.pos_x - 12).lte("pos_x", c.pos_x + 12).gte("pos_z", c.pos_z - 12).lte("pos_z", c.pos_z + 12).order("created_at");
+  return (data ?? []).filter((d: { pos_x: number; pos_z: number }) => Math.hypot(d.pos_x - c.pos_x, d.pos_z - c.pos_z) <= 12);
+}
+
+export async function pickDrop(userId: string, id: string, dropId: string) {
+  const c = await getOwnedChar(userId, id);
+  const { data: drop } = await db().from("ground_drops").select("*").eq("id", dropId).maybeSingle();
+  if (!drop || new Date(drop.expires_at).getTime() <= Date.now()) throw new Error("Esse item não está mais no chão.");
+  if (Math.hypot(drop.pos_x - c.pos_x, drop.pos_z - c.pos_z) > 3) throw new Error("Aproxime-se do item.");
+  if (drop.owner_character !== c.id && new Date(drop.protected_until).getTime() > Date.now()) throw new Error("O item ainda está protegido para o dono.");
+  const { data: claimed } = await db().from("ground_drops").delete().eq("id", dropId).select("id");
+  if (!claimed?.length) throw new Error("Outro jogador pegou esse item.");
+  const inv = [...c.inventory];
+  if (!addItem(inv, drop.item_id, drop.qty)) {
+    await db().from("ground_drops").insert(drop);
+    throw new Error("Inventário cheio.");
+  }
+  return save(c.id, { inventory: inv });
 }
 
 export function grantStore(c: CharRow, itemId: string): Partial<CharRow> {

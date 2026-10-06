@@ -7,7 +7,7 @@ import {
   type Slot, type VocationId,
 } from "@/game/data";
 import {
-  addItem, applyDeath, applySync, arenaStatus, db, getOwnedChar, joinArena, leaveArenaQueue, mpFetch, removeItem, save, verifyPurchaseWithMP,
+  addItem, applyDeath, applySync, arenaStatus, db, dropItem, getOwnedChar, joinArena, leaveArenaQueue, mpFetch, nearbyDrops, pickDrop, removeItem, save, verifyPurchaseWithMP,
 } from "./game.server";
 
 const charId = z.object({ id: z.string().uuid() });
@@ -129,6 +129,18 @@ export const useItem = auth
     if (!removeItem(inv, it.id, 1)) throw new Error("Você não tem esse item.");
     await save(c.id, { inventory: inv });
     return { use: it.use, inventory: inv };
+  });
+
+export const groundDropAction = auth
+  .inputValidator((d) => z.object({ id: z.string().uuid(), op: z.enum(["list", "drop", "pick"]), item: z.string().optional(), qty: z.number().int().min(1).max(1000).optional(), dropId: z.string().uuid().optional() }).parse(d))
+  .handler(async ({ data, context }) => {
+    if (data.op === "list") return { drops: await nearbyDrops(context.userId, data.id) };
+    if (data.op === "drop") {
+      if (!data.item) throw new Error("Escolha um item.");
+      return dropItem(context.userId, data.id, data.item, data.qty ?? 1);
+    }
+    if (!data.dropId) throw new Error("Item no chão inválido.");
+    return { character: await pickDrop(context.userId, data.id, data.dropId) };
   });
 
 export const equipItem = auth

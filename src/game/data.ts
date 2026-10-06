@@ -170,7 +170,7 @@ export function mlReq(ml: number, v: VocationId) {
   return (180 * Math.pow(1.12, ml)) / VOCATIONS[v].mlRate;
 }
 export function moveSpeed(level: number) {
-  return 6 + Math.min(level, 200) * 0.012;
+  return 6 + Math.min(level, 300) * 0.02;
 }
 
 // ---------- PvP & death rules (configurable) ----------
