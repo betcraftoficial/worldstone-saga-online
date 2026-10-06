@@ -255,6 +255,50 @@ export type Database = {
           },
         ]
       }
+      ground_drops: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          item_id: string
+          owner_character: string | null
+          pos_x: number
+          pos_z: number
+          protected_until: string
+          qty: number
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          item_id: string
+          owner_character?: string | null
+          pos_x: number
+          pos_z: number
+          protected_until?: string
+          qty: number
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          item_id?: string
+          owner_character?: string | null
+          pos_x?: number
+          pos_z?: number
+          protected_until?: string
+          qty?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ground_drops_owner_character_fkey"
+            columns: ["owner_character"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guilds: {
         Row: {
           created_at: string
