@@ -17,11 +17,16 @@ export type Database = {
       arena_matches: {
         Row: {
           created_at: string
+          eliminated: string[]
           ends_at: string | null
           id: string
           map_id: string
           mode: string
           rewarded: boolean
+          round_ends_at: string | null
+          round_no: number
+          round_score_a: number
+          round_score_b: number
           score_a: number
           score_b: number
           starts_at: string
@@ -33,11 +38,16 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          eliminated?: string[]
           ends_at?: string | null
           id?: string
           map_id: string
           mode: string
           rewarded?: boolean
+          round_ends_at?: string | null
+          round_no?: number
+          round_score_a?: number
+          round_score_b?: number
           score_a?: number
           score_b?: number
           starts_at: string
@@ -49,11 +59,16 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          eliminated?: string[]
           ends_at?: string | null
           id?: string
           map_id?: string
           mode?: string
           rewarded?: boolean
+          round_ends_at?: string | null
+          round_no?: number
+          round_score_a?: number
+          round_score_b?: number
           score_a?: number
           score_b?: number
           starts_at?: string
