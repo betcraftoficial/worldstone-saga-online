@@ -5,13 +5,14 @@ export type HotbarAction = { kind: "attack" } | { kind: "spell"; id: string } | 
 const keyFor = (characterId: string) => `storm:hotbar:${characterId}`;
 
 export function defaultHotbar(vocation: VocationId): HotbarAction[] {
-  const spells = VOCATIONS[vocation].spells.slice(0, 7).map((spell) => ({ kind: "spell", id: spell.id }) as HotbarAction);
-  return [
+  const spells: HotbarAction[] = VOCATIONS[vocation].spells.slice(0, 7).map((spell) => ({ kind: "spell", id: spell.id }));
+  const actions: HotbarAction[] = [
     { kind: "attack" },
     ...spells,
     { kind: "item", id: "pocao_vida" },
     { kind: "item", id: "pocao_mana" },
-  ].slice(0, 10);
+  ];
+  return actions.slice(0, 10);
 }
 
 export function loadHotbar(characterId: string, vocation: VocationId) {

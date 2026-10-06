@@ -12,3 +12,8 @@
 - [ ] Liberar seis outfits gratuitos e manter a Loja Premium integrada.
 - [ ] Revisar HUD, painéis e responsividade para PC e celular.
 - [ ] Validar build, fluxos principais e jogo 3D em navegador.
+
+- [ ] Arena PvP por equipes em melhor de 3, sem saída durante partida, mapas variados
+- [ ] Drop manual de itens, colisão entre personagens e velocidade por nível
+- [ ] Hotkeys editáveis e catálogo de magias por vocação
+- [ ] Animações, efeitos e sons distintos por vocação
