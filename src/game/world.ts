@@ -1,5 +1,5 @@
 // Deterministic world layout shared by rendering, collision and the minimap.
-import { CITIES, ZONES, WORLD_SIZE, biomeAt, type Biome } from "./data";
+import { ARENA_MAPS, CITIES, ZONES, WORLD_SIZE, biomeAt, type Biome } from "./data";
 
 export function hash(x: number, z: number) {
   const s = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453;
@@ -121,14 +121,44 @@ export function collide(x: number, z: number, r = 0.5): [number, number] {
     if (Math.abs(lx) < hw && Math.abs(lz) < hd) {
       const px = hw - Math.abs(lx), pz = hd - Math.abs(lz);
       let nx = lx, nz = lz;
-      if (px < pz) nx = Math.sign(lx) * hw; else nz = Math.sign(lz) * hd;
+      if (px < pz) nx = (Math.sign(lx) || 1) * hw; else nz = (Math.sign(lz) || 1) * hd;
       const ic = Math.cos(b.rot), is = Math.sin(b.rot);
       x = b.x + nx * ic - nz * is;
       z = b.z + nx * is + nz * ic;
     }
   }
+  for (const p of PROPS) {
+    if (Math.abs(x-p.x)>3 || Math.abs(z-p.z)>3) continue;
+    const radius=(p.kind==="rock"? .9:.35)*p.s+r;
+    [x,z]=separateCircle(x,z,p.x,p.z,radius);
+  }
   const lim = WORLD_SIZE - 4;
   return [Math.max(-lim, Math.min(lim, x)), Math.max(-lim, Math.min(lim, z))];
+}
+
+export function separateCircle(x:number,z:number,cx:number,cz:number,radius:number):[number,number] {
+  const dx=x-cx,dz=z-cz,d=Math.hypot(dx,dz);
+  if(d>=radius) return [x,z];
+  if(d<.0001) return [cx+radius,cz];
+  return [cx+dx/d*radius,cz+dz/d*radius];
+}
+
+export const ARENA_OBSTACLES: Record<string,{x:number;z:number;w:number;d:number}[]> = {
+  cripta:[{x:0,z:-213,w:4,d:4},{x:0,z:-197,w:4,d:4}],
+  ponte:[{x:0,z:-219,w:5,d:12},{x:0,z:-191,w:5,d:12}],
+  ruinas:[{x:-5,z:-207,w:3,d:9},{x:5,z:-203,w:3,d:9}],
+};
+export function arenaCollide(x:number,z:number,mapId:string,r=.5):[number,number] {
+  if(!ARENA_MAPS.some(m=>m.id===mapId)) return [x,z];
+  x=Math.max(-25+r,Math.min(25-r,x)); z=Math.max(-230+r,Math.min(-180-r,z));
+  for(const wall of ARENA_OBSTACLES[mapId]??[]) {
+    const dx=x-wall.x,dz=z-wall.z,hw=wall.w/2+r,hd=wall.d/2+r;
+    if(Math.abs(dx)<hw && Math.abs(dz)<hd) {
+      if(hw-Math.abs(dx)<hd-Math.abs(dz)) x=wall.x+(Math.sign(dx)||1)*hw;
+      else z=wall.z+(Math.sign(dz)||1)*hd;
+    }
+  }
+  return [x,z];
 }
 
 // ---------- Vegetation ----------

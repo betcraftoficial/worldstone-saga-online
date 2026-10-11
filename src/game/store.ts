@@ -3,7 +3,7 @@ import type { Me } from "./engine";
 import type { NpcDef } from "./data";
 
 export type ChatMsg = { id: number; ch: "global" | "local" | "system" | "party"; from?: string; text: string; color?: string };
-export type Panel = "inventory" | "character" | "skills" | "store" | "npc" | "look" | "party" | "guild" | "trade" | "quests" | "arena" | "menu" | null;
+export type Panel = "inventory" | "character" | "skills" | "store" | "npc" | "look" | "party" | "guild" | "trade" | "quests" | "arena" | "menu" | "settings" | null;
 
 let mid = 0;
 type UI = {

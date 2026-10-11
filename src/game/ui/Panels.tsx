@@ -165,7 +165,7 @@ function Arena() {
   const me = useUI((s) => s.me)!;
   const [mode, setMode] = useState<ArenaMode>("1v1");
   const [state, setState] = useState<{ queue?: { status: string; mode: string } | null; match?: { mode: string; map_id: string; status: string; starts_at: string } | null; waiting?: number; needed?: number }>({});
-  const refresh = async () => { const r = await run(arenaAction({ data: { id: me.id, op: "status" } })); if (r) setState(r); };
+  const refresh = async () => { const r = await run(arenaAction({ data: { id: me.id, op: "status" } })); if (r && "match" in r) setState(r); };
   useEffect(() => { void refresh(); const timer = setInterval(refresh, 4000); return () => clearInterval(timer); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return <Sheet title="Arena PvP">
     <div className="slot mb-3 p-3 text-sm">
@@ -175,7 +175,7 @@ function Arena() {
     {state.match ? <div className="slot border-primary p-3"><b className="text-primary">Partida {state.match.mode}</b><p className="text-sm">Mapa: {state.match.map_id} · {state.match.status === "countdown" ? "Preparando combate" : "Em andamento"}</p><p className="mt-1 text-xs text-muted-foreground">Derrote a equipe adversária. A morte encerra a rodada sem perda de itens.</p></div> : state.queue?.status === "queued" ? <div className="slot p-3 text-center"><div className="animate-pulse font-display text-primary">Buscando combatentes…</div><p className="text-sm text-muted-foreground">Modo {state.queue.mode}</p><button className="btn-wood mt-3 px-4 py-1" onClick={async () => { await run(arenaAction({ data: { id: me.id, op: "leave" } })); await refresh(); }}>Sair da fila</button></div> : <>
       <p className="mb-3 text-sm text-muted-foreground">Escolha o tamanho da equipe. A partida começa quando todos os combatentes forem encontrados.</p>
       <div className="grid grid-cols-2 gap-2">{ARENA_MODES.map((m) => <button key={m} className={mode === m ? "btn-gold py-3" : "btn-wood py-3"} onClick={() => setMode(m)}>{m}</button>)}</div>
-      <button className="btn-gold mt-4 w-full py-2" onClick={async () => { const r = await run(arenaAction({ data: { id: me.id, op: "join", mode } }), "Você entrou na fila da Arena."); if (r) { setState(r); window.dispatchEvent(new Event("storm:reload")); } }}>Entrar na fila {mode}</button>
+      <button className="btn-gold mt-4 w-full py-2" onClick={async () => { const r = await run(arenaAction({ data: { id: me.id, op: "join", mode } }), "Você entrou na fila da Arena."); if (r) { if ("match" in r || "waiting" in r) setState(r); window.dispatchEvent(new Event("eldrath:reload")); } }}>Entrar na fila {mode}</button>
     </>}
     <div className="mt-4 text-xs text-muted-foreground">Vitórias concedem XP, ouro e rating. Derrotas reduzem apenas rating. PK e penalidades comuns ficam desativados dentro da Arena.</div>
   </Sheet>;

@@ -82,10 +82,10 @@ function Play() {
     if (!R.me || syncing.current || R.dead) return;
     syncing.current = true;
     const pending = R.pending;
-    R.pending = { kills: [], hits: 0, manaSpent: 0 };
+    R.pending = { kills: [], hits: 0, manaSpent: 0, combatWith: null };
     try {
       const prevLevel = R.me.level;
-      const r = await syncProgress({ data: { id: R.me.id, x: R.x, z: R.z, hp: R.hp, mana: R.mana, kills: pending.kills.slice(0, 30), hits: pending.hits, manaSpent: Math.round(pending.manaSpent) } });
+      const r = await syncProgress({ data: { id: R.me.id, x: R.x, z: R.z, hp: R.hp, mana: R.mana, kills: pending.kills.slice(0, 30), hits: pending.hits, manaSpent: Math.round(pending.manaSpent), combatWith: pending.combatWith } });
       const m = commit(r.character);
       if (Math.hypot(m.pos_x - R.x, m.pos_z - R.z) > 30) { R.x = m.pos_x; R.z = m.pos_z; }
       if (m.level > prevLevel) { R.hp = maxHpMe(); R.mana = maxManaMe(); toast.success(`Nível ${m.level}!`); }
