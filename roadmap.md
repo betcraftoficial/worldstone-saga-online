@@ -1,5 +1,12 @@
 # STORM ONLINE — Roadmap ativo
 
+## Pedido atual — melhorias práticas
+- [ ] Arena exclusivamente PvP, melhor de três, isolamento, bloqueio de saída e desconexões.
+- [ ] Colisões e velocidade equilibrada por nível; drop na morte configurável e seguro na arena.
+- [ ] Grimório por vocação, hotkeys persistentes, ataques animados e sons.
+- [ ] Qualidade gráfica, barras acima das criaturas e controles mobile horizontais personalizáveis.
+- [ ] Testar regras e fluxos reais; informar limites não verificados.
+
 - [ ] Renomear Eldrath Online para STORM ONLINE em toda a experiência e metadados.
 - [ ] Elevar o mundo 3D para fantasia medieval sombria, com regiões e marcos exploráveis.
 - [ ] Implementar tutorial narrativo guiado e encadeado.
