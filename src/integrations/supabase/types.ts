@@ -16,9 +16,11 @@ export type Database = {
     Tables: {
       arena_matches: {
         Row: {
+          attack_ready: Json
           created_at: string
           eliminated: string[]
           ends_at: string | null
+          heartbeats: Json
           id: string
           map_id: string
           mode: string
@@ -37,9 +39,11 @@ export type Database = {
           winner: string | null
         }
         Insert: {
+          attack_ready?: Json
           created_at?: string
           eliminated?: string[]
           ends_at?: string | null
+          heartbeats?: Json
           id?: string
           map_id: string
           mode: string
@@ -58,9 +62,11 @@ export type Database = {
           winner?: string | null
         }
         Update: {
+          attack_ready?: Json
           created_at?: string
           eliminated?: string[]
           ends_at?: string | null
+          heartbeats?: Json
           id?: string
           map_id?: string
           mode?: string
@@ -129,6 +135,7 @@ export type Database = {
           bank: number
           combat_until: string | null
           created_at: string
+          death_drop_enabled: boolean
           deaths: number
           equipment: Json
           exp: number
@@ -170,6 +177,7 @@ export type Database = {
           bank?: number
           combat_until?: string | null
           created_at?: string
+          death_drop_enabled?: boolean
           deaths?: number
           equipment?: Json
           exp?: number
@@ -211,6 +219,7 @@ export type Database = {
           bank?: number
           combat_until?: string | null
           created_at?: string
+          death_drop_enabled?: boolean
           deaths?: number
           equipment?: Json
           exp?: number
@@ -423,7 +432,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      storm_arena_tick: {
+        Args: {
+          p_action?: string
+          p_character: string
+          p_cooldown?: number
+          p_damage?: number
+          p_mana?: number
+          p_target?: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
