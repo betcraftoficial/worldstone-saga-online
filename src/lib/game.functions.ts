@@ -7,7 +7,7 @@ import {
   type Slot, type VocationId,
 } from "@/game/data";
 import {
-  addItem, applyDeath, applySync, arenaStatus, db, dropItem, getOwnedChar, joinArena, leaveArenaQueue, mpFetch, nearbyDrops, pickDrop, removeItem, save, verifyPurchaseWithMP,
+  addItem, applyDeath, applySync, arenaAttack, arenaStatus, db, dropItem, getOwnedChar, joinArena, leaveArenaQueue, mpFetch, nearbyDrops, pickDrop, removeItem, save, verifyPurchaseWithMP,
 } from "./game.server";
 
 const charId = z.object({ id: z.string().uuid() });
@@ -90,6 +90,18 @@ export const arenaAction = auth
     }
     if (data.op === "leave") return leaveArenaQueue(context.userId, data.id);
     return arenaStatus(context.userId, data.id);
+  });
+
+export const arenaCombat = auth
+  .inputValidator((d) => z.object({ id:z.string().uuid(), target:z.string().uuid(), spell:z.string().max(40).optional() }).parse(d))
+  .handler(async ({data,context}) => arenaAttack(context.userId,data.id,data.target,data.spell));
+
+export const deathDropSetting = auth
+  .inputValidator((d) => z.object({id:z.string().uuid(), enabled:z.boolean()}).parse(d))
+  .handler(async ({data,context}) => {
+    const c=await getOwnedChar(context.userId,data.id);
+    if (c.combat_until && Date.parse(c.combat_until)>Date.now()) throw new Error("Altere esta opção fora de combate.");
+    return save(c.id,{death_drop_enabled:data.enabled});
   });
 
 export const npcTrade = auth

@@ -1,9 +1,10 @@
 // Server-only game authority. Every value that persists is computed here.
+import { collide, arenaCollide } from "@/game/world";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   ARENA_MAPS, CITIES, FREE_OUTFITS, ITEMS, MONSTERS, MONSTER_SPAWNS, OUTFITS, MOUNTS, PVP_RULES, QUESTS, STORE,
   VOCATIONS, cityAt, zoneAt, levelFromExp, maxHp, maxMana, mlReq, moveSpeed, skillReq,
-  type VocationId,
+  totalDef, weaponAtk, type VocationId,
 } from "@/game/data";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,7 +19,7 @@ export type CharRow = {
   owned_outfits: string[]; owned_mounts: string[]; xp_boost_until: string | null; skull: string;
   skull_until: string | null; frags: number; deaths: number; monsters_killed: number; guild_id: string | null;
    quests: Record<string, { progress: number; done?: boolean }>; tutorial_step: number; combat_until: string | null;
-   arena_wins: number; arena_losses: number; arena_rating: number; last_save: string; created_at: string;
+   death_drop_enabled: boolean; arena_wins: number; arena_losses: number; arena_rating: number; last_save: string; created_at: string;
 };
 
 export const MAX_STACKS = 40;
@@ -75,6 +76,7 @@ export type SyncInput = {
 
 export async function applySync(userId: string, input: SyncInput) {
   const c = await getOwnedChar(userId, input.id);
+  const arena = await currentArena(c.id);
   const now = Date.now();
   const dt = Math.max(1, Math.min(120, (now - new Date(c.last_save).getTime()) / 1000));
   const events: { type: string; text: string }[] = [];
@@ -92,8 +94,16 @@ export async function applySync(userId: string, input: SyncInput) {
   let x = c.pos_x, z = c.pos_z;
   const dist = Math.hypot(input.x - c.pos_x, input.z - c.pos_z);
   const allowed = moveSpeed(c.level) * 1.45 * dt + 12;
-  if (dist <= allowed) { x = input.x; z = input.z; }
+  if (dist <= allowed) { [x, z] = collide(input.x, input.z); }
   else events.push({ type: "warn", text: "Movimento inválido corrigido pelo servidor." });
+
+  if (arena) {
+    const blocked = arena.status !== "active" || arena.eliminated.includes(c.id);
+    if (blocked) { x = c.pos_x; z = c.pos_z; }
+    [x, z] = arenaCollide(x, z, arena.map_id);
+    const character = await save(c.id, { pos_x: x, pos_z: z, last_save: new Date(now).toISOString() });
+    return { character, events };
+  }
 
   // --- kills (rate-limited + proximity checked)
   const maxKills = Math.ceil(dt / 1.2) + 2;
@@ -156,62 +166,21 @@ export async function applyDeath(userId: string, id: string, killerId?: string |
   const c = await getOwnedChar(userId, id);
   const red = c.skull === "red";
   const home0 = CITIES.find((x) => x.id === c.home_city) ?? CITIES[0];
+  const match = await currentArena(c.id);
+  if (match) throw new Error("As eliminações da Arena são decididas pelo servidor.");
   if (zoneAt(c.pos_x, c.pos_z)?.kind === "pvp") {
-    const { data: matches } = await db().from("arena_matches").select("*").in("status", ["countdown", "active"]).order("created_at", { ascending: false }).limit(20);
-    const match = (matches ?? []).find((m: { team_a: string[]; team_b: string[] }) => m.team_a.includes(c.id) || m.team_b.includes(c.id));
-    if (match) {
-      const eliminated = Array.from(new Set([...(match.eliminated ?? []), c.id]));
-      const loserSide = match.team_a.includes(c.id) ? "a" : "b";
-      const losingTeam: string[] = loserSide === "a" ? match.team_a : match.team_b;
-      const teamEliminated = losingTeam.every((cid) => eliminated.includes(cid));
-      if (!teamEliminated) {
-        await db().from("arena_matches").update({ eliminated }).eq("id", match.id).eq("status", "active");
-        const row = await save(c.id, { hp: maxHp(c.vocation, c.level), mana: maxMana(c.vocation, c.level), pos_x: 0, pos_z: -205, combat_until: new Date(Date.now() + 30_000).toISOString(), last_save: new Date().toISOString() });
-        return { character: row, arenaEliminated: true, events: ["Você foi eliminado. Aguarde sua equipe concluir a rodada."] };
-      }
-
-      const winnerSide = loserSide === "a" ? "b" : "a";
-      const scoreA = Number(match.round_score_a ?? 0) + (winnerSide === "a" ? 1 : 0);
-      const scoreB = Number(match.round_score_b ?? 0) + (winnerSide === "b" ? 1 : 0);
-      const gameOver = scoreA >= 2 || scoreB >= 2;
-      const map = ARENA_MAPS.find((entry) => entry.id === match.map_id) ?? ARENA_MAPS[0];
-      if (gameOver) {
-        const winners: string[] = winnerSide === "a" ? match.team_a : match.team_b;
-        const losers: string[] = winnerSide === "a" ? match.team_b : match.team_a;
-        const { data: claimed } = await db().from("arena_matches").update({ status: "finished", winner: winnerSide, round_score_a: scoreA, round_score_b: scoreB, eliminated, ends_at: new Date().toISOString(), rewarded: true }).eq("id", match.id).eq("status", "active").select("id");
-        if (claimed?.length) {
-          const reward = match.mode === "5v5" ? 700 : match.mode === "3v3" ? 500 : match.mode === "2v2" ? 350 : 250;
-          for (const cid of winners) {
-            const { data: w } = await db().from("characters").select("exp,gold,arena_wins,arena_rating,vocation,level").eq("id", cid).single();
-            const exp = Number(w.exp) + reward;
-            await db().from("characters").update({ exp, level: levelFromExp(exp), gold: Number(w.gold) + reward, arena_wins: w.arena_wins + 1, arena_rating: w.arena_rating + 18, combat_until: null }).eq("id", cid);
-          }
-          for (const cid of losers) {
-            const { data: l } = await db().from("characters").select("arena_losses,arena_rating").eq("id", cid).single();
-            await db().from("characters").update({ arena_losses: l.arena_losses + 1, arena_rating: Math.max(0, l.arena_rating - 12), combat_until: null }).eq("id", cid);
-          }
-        }
-        const row = await save(c.id, { hp: maxHp(c.vocation, c.level), mana: maxMana(c.vocation, c.level), pos_x: home0.x, pos_z: home0.z + 4, combat_until: null, last_save: new Date().toISOString() });
-        return { character: row, arenaFinished: true, events: [`Partida encerrada: ${scoreA} × ${scoreB}. A equipe ${winnerSide.toUpperCase()} venceu.`] };
-      }
-
-      const startsAt = new Date(Date.now() + 8_000).toISOString();
-      const { data: advanced } = await db().from("arena_matches").update({ status: "countdown", round_no: Number(match.round_no ?? 1) + 1, round_score_a: scoreA, round_score_b: scoreB, eliminated: [], starts_at: startsAt, round_ends_at: new Date().toISOString() }).eq("id", match.id).eq("status", "active").select("id");
-      if (advanced?.length) {
-        for (const cid of match.team_a as string[]) await db().from("characters").update({ pos_x: map.a[0], pos_z: map.a[1], combat_until: startsAt }).eq("id", cid);
-        for (const cid of match.team_b as string[]) await db().from("characters").update({ pos_x: map.b[0], pos_z: map.b[1], combat_until: startsAt }).eq("id", cid);
-      }
-      const spawn = loserSide === "a" ? map.a : map.b;
-      const row = await save(c.id, { hp: maxHp(c.vocation, c.level), mana: maxMana(c.vocation, c.level), pos_x: spawn[0], pos_z: spawn[1], combat_until: startsAt, last_save: new Date().toISOString() });
-      return { character: row, arenaRound: true, events: [`Rodada encerrada: ${scoreA} × ${scoreB}. Próxima rodada em 8 segundos.`] };
-    }
-    const row = await save(c.id, { hp: maxHp(c.vocation, c.level), mana: maxMana(c.vocation, c.level), pos_x: home0.x, pos_z: home0.z + 4, combat_until: null, last_save: new Date().toISOString() });
-    return { character: row, events: ["Você caiu na zona PvP. Sem penalidades."] };
+    return { character: await save(c.id, { hp: maxHp(c.vocation,c.level), mana: maxMana(c.vocation,c.level), pos_x:home0.x,pos_z:home0.z+4,combat_until:null }), events: ["Você renasceu sem penalidades na zona PvP."] };
   }
   const lossPct = red ? PVP_RULES.expLossPct * 2 : PVP_RULES.expLossPct;
   const exp = Math.max(0, Math.floor(c.exp * (1 - lossPct)));
   const level = Math.max(1, levelFromExp(exp));
-  const inv = c.inventory.filter(() => Math.random() >= (red ? PVP_RULES.redSkullItemLoss : PVP_RULES.itemLossChance));
+  const inv = c.inventory.map(stack => ({...stack}));
+  const dropped = c.inventory.filter(() => (red || c.death_drop_enabled !== false) && Math.random() < (red ? PVP_RULES.redSkullItemLoss : PVP_RULES.itemLossChance));
+  for (const stack of dropped) {
+    const { error } = await db().from("ground_drops").insert({ item_id: stack.id, qty: stack.qty, pos_x: c.pos_x, pos_z: c.pos_z, owner_character: c.id });
+    if (error) throw new Error("Não foi possível salvar os itens da morte.");
+    removeItem(inv, stack.id, stack.qty);
+  }
   const home = CITIES.find((x) => x.id === c.home_city) ?? CITIES[0];
   const events: string[] = [`Você morreu e perdeu ${c.exp - exp} de experiência.`];
   if (inv.length < c.inventory.length) events.push(`Você perdeu ${c.inventory.length - inv.length} item(ns).`);
@@ -233,7 +202,7 @@ export async function applyDeath(userId: string, id: string, killerId?: string |
   const row = await save(c.id, {
     exp, level, inventory: inv, hp: maxHp(c.vocation, level), mana: maxMana(c.vocation, level),
     pos_x: home.x, pos_z: home.z + 4, deaths: c.deaths + 1, last_save: new Date().toISOString(),
-    skull: red ? c.skull : "none", skull_until: red ? c.skull_until : null,
+    skull: red ? c.skull : "none", skull_until: red ? c.skull_until : null, combat_until: null,
   });
   return { character: row, events };
 }
@@ -241,6 +210,7 @@ export async function applyDeath(userId: string, id: string, killerId?: string |
 export async function joinArena(userId: string, id: string, mode: "1v1" | "2v2" | "3v3" | "5v5") {
   const c = await getOwnedChar(userId, id);
   if (c.combat_until && new Date(c.combat_until).getTime() > Date.now()) throw new Error("Você não pode entrar na Arena durante o combate.");
+  if (await currentArena(c.id)) throw new Error("Você já está em uma partida.");
   await db().from("arena_queue").upsert({ character_id: c.id, user_id: userId, mode, status: "queued", team_code: null }, { onConflict: "character_id" });
   const size = Number(mode[0]);
   const needed = size * 2;
@@ -253,23 +223,53 @@ export async function joinArena(userId: string, id: string, mode: "1v1" | "2v2" 
     const startsAt = new Date(Date.now() + 10_000).toISOString();
     const { data: match } = await db().from("arena_matches").insert({ mode, map_id: map.id, team_a: teamA, team_b: teamB, starts_at: startsAt, round_no: 1, round_score_a: 0, round_score_b: 0, eliminated: [] }).select("*").single();
     await db().from("arena_queue").update({ status: "matched" }).in("character_id", [...teamA, ...teamB]);
-    for (const cid of teamA) await db().from("characters").update({ pos_x: map.a[0], pos_z: map.a[1] }).eq("id", cid);
-    for (const cid of teamB) await db().from("characters").update({ pos_x: map.b[0], pos_z: map.b[1] }).eq("id", cid);
+    for (const [side, team] of [[map.a, teamA], [map.b, teamB]] as const) {
+      for (const [index, cid] of team.entries()) {
+        const { data: player } = await db().from("characters").select("*").eq("id", cid).single();
+        await save(cid, { pos_x:side[0],pos_z:side[1]+index*2,hp:maxHp(player.vocation,player.level),mana:maxMana(player.vocation,player.level),last_save:new Date().toISOString() });
+      }
+    }
     return { state: "matched", match };
   }
   return { state: "queued", waiting: queued?.length ?? 1, needed };
 }
 
+export async function currentArena(id: string) {
+  const { data, error } = await db().from("arena_matches").select("*").in("status", ["countdown", "active"]).or(`team_a.cs.{${id}},team_b.cs.{${id}}`).order("created_at", { ascending:false }).limit(1).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 export async function arenaStatus(userId: string, id: string) {
-  const c = await getOwnedChar(userId, id);
-  const { data: queue } = await db().from("arena_queue").select("*").eq("character_id", c.id).maybeSingle();
-  const { data: matches } = await db().from("arena_matches").select("*").in("status", ["countdown", "active"]).order("created_at", { ascending: false }).limit(20);
-  const match = (matches ?? []).find((m: { team_a: string[]; team_b: string[] }) => m.team_a.includes(c.id) || m.team_b.includes(c.id)) ?? null;
-  if (match && match.status === "countdown" && new Date(match.starts_at).getTime() <= Date.now()) {
-    const { data: active } = await db().from("arena_matches").update({ status: "active" }).eq("id", match.id).eq("status", "countdown").select("*").single();
-    return { queue, match: active ?? match };
-  }
-  return { queue, match };
+  await getOwnedChar(userId, id);
+  const { data: tick, error } = await db().rpc("storm_arena_tick", { p_character:id });
+  if (error) throw new Error(error.message);
+  const match = tick?.match ?? null;
+  const { data: queue } = await db().from("arena_queue").select("*").eq("character_id", id).maybeSingle();
+  const character = await getOwnedChar(userId,id);
+  return { queue, match, character, finished: Boolean(tick?.finished) };
+}
+
+export async function arenaAttack(userId: string, id: string, targetId: string, spellId?: string) {
+  const c = await getOwnedChar(userId,id);
+  const match = await currentArena(id);
+  if (!match || match.status !== "active" || match.eliminated.includes(id)) throw new Error("Aguarde a rodada.");
+  const opposing: string[] = match.team_a.includes(id) ? match.team_b : match.team_a;
+  if (!opposing.includes(targetId) || match.eliminated.includes(targetId)) throw new Error("Alvo inválido.");
+  const { data: victim } = await db().from("characters").select("*").eq("id",targetId).single();
+  if (!victim) throw new Error("Alvo indisponível.");
+  const v = VOCATIONS[c.vocation];
+  const spell = spellId ? v.spells.find(s=>s.id===spellId) : null;
+  if (spellId && (!spell || c.level < spell.minLevel || !["target","area"].includes(spell.kind))) throw new Error("Magia indisponível.");
+  const range = spell ? (spell.range || spell.radius || 3) : v.attackRange;
+  if (Math.hypot(c.pos_x-victim.pos_x,c.pos_z-victim.pos_z)>range+1) throw new Error("Alvo fora de alcance.");
+  const mage = c.vocation === "druid" || c.vocation === "sorcerer";
+  const base = spell ? (c.level*.25+c.magic_level*3.2+(mage?8:c.skill_level*1.1+weaponAtk(c.equipment)*.7))*spell.power : weaponAtk(c.equipment)*((mage?c.magic_level+6:c.skill_level)+4)*.075+c.level*.25;
+  const defense = Math.min(.7,totalDef(victim.equipment)*.012+(VOCATIONS[victim.vocation as VocationId].passive.def??0));
+  const damage = Math.max(1,Math.round(base*(.65+Math.random()*.35)*(1+(v.passive.dmg??0)+(spell?(v.passive.spell??0):0))*(1-defense)));
+  const { data: result,error } = await db().rpc("storm_arena_tick",{p_character:id,p_target:targetId,p_damage:damage,p_cooldown:spell?.cooldown??v.attackSpeed,p_mana:spell?.mana??0,p_action:spell?.id??"auto"});
+  if(error) throw new Error(error.message);
+  return { match:result?.match??null,character:await getOwnedChar(userId,id) };
 }
 
 export async function leaveArenaQueue(userId: string, id: string) {
@@ -282,7 +282,8 @@ export async function leaveArenaQueue(userId: string, id: string) {
 
 export async function dropItem(userId: string, id: string, itemId: string, qty: number) {
   const c = await getOwnedChar(userId, id);
-  const inv = [...c.inventory];
+  if (await currentArena(id)) throw new Error("Itens não podem ser descartados na Arena.");
+  const inv = c.inventory.map(stack=>({...stack}));
   if (!ITEMS[itemId] || !removeItem(inv, itemId, qty)) throw new Error("Você não possui essa quantidade.");
   const { data: drop, error } = await db().from("ground_drops").insert({ item_id: itemId, qty, pos_x: c.pos_x, pos_z: c.pos_z, owner_character: c.id }).select("*").single();
   if (error) throw new Error(error.message);
